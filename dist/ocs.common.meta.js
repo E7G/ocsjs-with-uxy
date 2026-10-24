@@ -1,0 +1,75 @@
+// ==UserScript==
+// @name       				OCS-with-uxy 网课助手 - 全域名通用版
+// @version    				5.2.3.1
+// @description				OCS-with-uxy 是 E7G 维护的 OCS 5.x 定制分支，保留上游 OCS 功能并扩展优学院、雨课堂及学习通支持。 支持平台： 【超星学习通】 【知到智慧树】 【职教云】 【智慧职教】 【中国大学MOOC】 【雨课堂】 【优学院】 。项目与问题反馈：https://github.com/E7G/ocsjs-with-uxy
+// @author     				E7G (fork; original OCS by enncy)
+// @license    				MIT
+// @match      				*://*.zhihuishu.com/*
+// @match      				*://*.hike-teaching-center.polymas.com/*
+// @match      				*://*.chaoxing.com/*
+// @match      				*://*.edu.cn/*
+// @match      				*://*.org.cn/*
+// @match      				*://*.xueyinonline.com/*
+// @match      				*://*.hnsyu.net/*
+// @match      				*://*.qutjxjy.cn/*
+// @match      				*://*.ynny.cn/*
+// @match      				*://*.hnvist.cn/*
+// @match      				*://*.fjlecb.cn/*
+// @match      				*://*.gdhkmooc.com/*
+// @match      				*://*.cugbonline.cn/*
+// @match      				*://*.zjelib.cn/*
+// @match      				*://*.cqrspx.cn/*
+// @match      				*://*.neauce.com/*
+// @match      				*://*.zhihui-yun.com/*
+// @match      				*://*.cqie.cn/*
+// @match      				*://*.ccqmxx.com/*
+// @match      				*://*.jxgmxy.com/*
+// @match      				*://*.jnzyjsxy.cn/*
+// @match      				*://*.smjyxy.cn/*
+// @match      				*://*.sslibrary.com/*
+// @match      				*://*.xuexi365.com/*
+// @match      				*://*.icve.com.cn/*
+// @match      				*://*.ai.icve.com.cn/*
+// @match      				*://*.course.icve.com.cn/*
+// @match      				*://*.courshare.cn/*
+// @match      				*://*.webtrn.cn/*
+// @match      				*://*.zjy2.icve.com.cn/*
+// @match      				*://*.zyk.icve.com.cn/*
+// @match      				*://*.icourse163.org/*
+// @match      				*://*.yuketang.cn/*
+// @match      				*://*.gdufemooc.cn/*
+// @match      				*://*.ulearning.cn/*
+// @match      				*://*.ulearning.com.cn/*
+// @grant      				GM_info
+// @grant      				GM_getTab
+// @grant      				GM_saveTab
+// @grant      				GM_setValue
+// @grant      				GM_getValue
+// @grant      				unsafeWindow
+// @grant      				GM_listValues
+// @grant      				GM_deleteValue
+// @grant      				GM_notification
+// @grant      				GM_xmlhttpRequest
+// @grant      				GM_getResourceText
+// @grant      				GM_addValueChangeListener
+// @grant      				GM_removeValueChangeListener
+// @run-at     				document-start
+// @contributor				enncy and OCS contributors
+// @namespace  				https://github.com/E7G/ocsjs-with-uxy
+// @homepage   				https://github.com/E7G/ocsjs-with-uxy
+// @homepageURL				https://github.com/E7G/ocsjs-with-uxy
+// @source     				https://github.com/E7G/ocsjs-with-uxy
+// @supportURL 				https://github.com/E7G/ocsjs-with-uxy/issues
+// @updateURL  				https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.meta.js
+// @downloadURL				https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.user.js
+// @icon       				https://cdn.ocsjs.com/logo.png
+// @connect    				enncy.cn
+// @connect    				icodef.com
+// @connect    				ocsjs.com
+// @connect    				zaizhexue.top
+// @connect    				localhost
+// @connect    				127.0.0.1
+// @connect    				aliyuncs.com
+// @connect    				*
+// @antifeature				payment
+// ==/UserScript==

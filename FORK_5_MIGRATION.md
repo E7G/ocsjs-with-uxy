@@ -26,3 +26,16 @@ corepack pnpm build
 ```
 
 The original fork's `4.0` branch is retained for rollback. Browser compatibility with each live learning platform still requires manual validation; automated compile and resolver tests do not establish live-site compatibility.
+
+## Userscript distribution and updates
+
+The standard and all-domain scripts are published as **tracked files under `5.0/dist/`** so userscript managers can download them from stable raw GitHub links. This is separate from the old GitHub Releases artifacts and does not overwrite historical releases.
+
+- Standard install: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.user.js
+- Standard update metadata: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.meta.js
+- All-domain install: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.user.js
+- All-domain update metadata: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.meta.js
+
+Metadata credits E7G for this fork and enncy / OCS contributors for the original, points the homepage/source/support to this fork, and uses a distinct userscript version suffix (`5.2.3.1` initially). Whenever publishing new fork changes without changing the upstream version, increase the suffix in `scripts/build-core.js` before rebuilding, and commit the four generated files above via `git add -f dist/ocs.user.js dist/ocs.meta.js dist/ocs.common.user.js dist/ocs.common.meta.js`. The development userscript contains local file paths and is deliberately not published or assigned public auto-update URLs.
+
+The build automatically verifies metadata across standard, all-domain, and development variants.

@@ -4,6 +4,11 @@ const { series } = require('gulp');
 const del = require('del');
 const util = require('util');
 const { version } = require('../package.json');
+// Increase this revision whenever the fork changes without an upstream version bump.
+const scriptVersion = version + '.1';
+const repoURL = 'https://github.com/E7G/ocsjs-with-uxy';
+// Generated userscripts are checked into the fork's 5.0/dist directory.
+const distributionBase = 'https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist';
 /** @type {(...args: any[])=> Promise<void>} */
 const execOut = util.promisify(require('./utils').execOut);
 const { createUserScript, createMetaFile } = require('../packages/utils');
@@ -78,18 +83,18 @@ async function createUserJs() {
 			},
 			metadata: {
 				name: 'OCS-with-uxy 网课助手',
-				version: version,
-				description: [
-					'OCS(online-course-script) 网课助手，官网 https://docs.ocsjs.com ，专注于帮助大学生从网课中释放出来',
-					'让自己的时间把握在自己的手中，拥有人性化的操作页面，流畅的步骤提示，支持 ',
-					projectList,
-					'等网课的学习，作业。具体的功能请查看脚本悬浮窗中的教程页面。'
-				].join(' '),
-				author: 'enncy',
+				version: scriptVersion,
+				description: ['OCS-with-uxy 是 E7G 维护的 OCS 5.x 定制分支，保留上游 OCS 功能并扩展优学院、雨课堂及学习通支持。', '支持平台：', projectList, '。项目与问题反馈：' + repoURL].join(' '),
+				author: 'E7G (fork; original OCS by enncy)',
+				contributor: 'enncy and OCS contributors',
 				license: 'MIT',
-				namespace: 'https://github.com/E7G/ocsjs-with-uxy',
-				homepage: 'https://github.com/E7G/ocsjs-with-uxy',
-				source: 'https://github.com/E7G/ocsjs-with-uxy',
+				namespace: repoURL,
+				homepage: repoURL,
+				homepageURL: repoURL,
+				source: repoURL,
+				supportURL: repoURL + '/issues',
+				updateURL: distributionBase + '/ocs.meta.js',
+				downloadURL: distributionBase + '/ocs.user.js',
 				icon: 'https://cdn.ocsjs.com/logo.png',
 				connect: ['enncy.cn', 'icodef.com', 'ocsjs.com', 'zaizhexue.top', 'localhost', '127.0.0.1',
 					// 智慧树阿里云资源，应用： 图片题资源访问
@@ -131,6 +136,9 @@ async function createUserJs() {
 	devOpts.parseRequire = false;
 	devOpts.parseResource = false;
 	devOpts.metadata.name = devOpts.metadata.name + '(dev)';
+	// Developer version uses local file:// dependencies; do not publish an auto-update URL.
+	delete devOpts.metadata.updateURL;
+	delete devOpts.metadata.downloadURL;
 	devOpts.metadata.require = ['file:///' + path.join(distResolvedPath, 'index.js')];
 	devOpts.metadata.resource = [`STYLE file:///${CSS_PATH}`];
 	devOpts.entry = path.join(__dirname, '../packages/scripts/entry.dev.js');
@@ -151,9 +159,14 @@ async function createUserJs() {
 	commonOpts.metadata.connect = connect;
 	commonOpts.entry = path.join(__dirname, '../packages/scripts/entry.common.js');
 	commonOpts.dist = path.join(distResolvedPath, 'ocs.common.user.js');
+	commonOpts.metadata.updateURL = distributionBase + '/ocs.common.meta.js';
+	commonOpts.metadata.downloadURL = distributionBase + '/ocs.common.user.js';
 
 	console.log('createUserScript: ', commonOpts.metadata.name, commonOpts.dist);
 	await createUserScript(commonOpts);
+	await createMetaFile({ dist: commonOpts.dist, metaDist: path.join(distResolvedPath, 'ocs.common.meta.js') });
+	// Fail the build if a published userscript has stale or inconsistent metadata.
+	require('./verify-fork-metadata').verifyForkMetadata(distResolvedPath);
 }
 
 exports.default = series(cleanOutput, testResolver, buildPackages, createUserJs);
