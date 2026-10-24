@@ -1,91 +1,78 @@
-name: Build and Publish
+name: Build and Release Userscripts
 
 on:
+  push:
+    branches: ["5.0"]
+    tags: ["v5.*"]
   workflow_dispatch:
 
 permissions:
   contents: write
 
+concurrency:
+  group: userscript-build-${{ github.ref }}
+  cancel-in-progress: false
+
 jobs:
   build-and-publish:
+    if: github.repository == 'E7G/ocsjs-with-uxy'
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
+      - name: Checkout source
         uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref }}
+          fetch-depth: 0
 
-      - name: Use Node.js 18.x
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.30.3
+
+      - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18.x
-          registry-url: "https://registry.npmjs.org"
+          node-version: '20'
+          cache: pnpm
 
-      - name: Setup env
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Check TypeScript
         run: |
-          echo 'BUILD_PATH="../release"' > ./scripts/.env
-          echo 'VITE_BUILD_PATH="../../release"' > ./packages/core/.env
-          echo 'VITE_BUILD_PATH="../../release"' > ./packages/scripts/.env
-          echo "BUILDTIME=$(TZ=Asia/Shanghai date)" >> $GITHUB_ENV
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_ENV
-          echo "DOWNLOAD_URL=https://github.com/ocsjs/ocsjs/releases/download/${GITHUB_REF_NAME}/" >> $GITHUB_ENV
+          pnpm exec tsc -p packages/utils/tsconfig.json
+          pnpm exec tsc --noEmit -p packages/scripts/tsconfig.json
 
-      - name: Install Dependencies
+      - name: Build userscripts and verify metadata
+        run: pnpm build
+
+      - name: Verify release tag and branch history
+        if: startsWith(github.ref, 'refs/tags/v5.')
         run: |
-          # 锁定 pnpm 版本与本地开发一致，避免新版供应链策略（minimumReleaseAge/构建脚本审批）导致 CI 安装失败
-          npm install pnpm@10.30.3 -g
-          pnpm install -w
-          cd packages/scripts && pnpm install && cd ../../
-          npm run tsc
+          git fetch origin 5.0
+          git merge-base --is-ancestor HEAD origin/5.0
+          node -e "const fs=require('node:fs');const m=fs.readFileSync('dist/ocs.meta.js','utf8').match(/^\/\/\s*@version\s+(\S+)/m);const actual=m?.[1];const expected=process.env.GITHUB_REF_NAME.slice(1);if(actual!==expected){console.error('Release tag '+expected+' does not match @version '+actual);process.exit(1)}"
 
-      - name: Build ocs scripts
-        run: npm run build
-
-      - name: Generate simplified changelog
-        run: npm run changelog:simplify
-
-      - name: Update release with artifacts
-        uses: ncipollo/release-action@v1
+      - name: Upload CI artifacts
+        uses: actions/upload-artifact@v4
         with:
-          tag: ${{ env.VERSION }}
-          artifactContentType: "text/html"
-          artifacts: |
-            ./release/ocs.user.js
-            ./release/ocs.meta.js
-            ./release/ocs.common.user.js
-            ./release/core.js
-            ./release/index.js
-            ./CHANGELOG_SIMPLIFIED.md
-          allowUpdates: true
-          # 上传产物时保留 release-please 已写入的 changelog body，
-          # 否则 ncipollo 会用空 body 覆盖，导致后续追加点拨时 changelog 丢失
-          omitBodyDuringUpdate: true
-          omitNameDuringUpdate: true
+          name: ocs-with-uxy-${{ github.run_id }}
+          path: |
+            dist/ocs.user.js
+            dist/ocs.meta.js
+            dist/ocs.common.user.js
+            dist/ocs.common.meta.js
+          if-no-files-found: error
+          retention-days: 14
 
-      - name: Append custom release notes
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          TAG_NAME=${GITHUB_REF#refs/tags/}
-          EXISTING_BODY=$(gh release view "$TAG_NAME" --json body -q .body 2>/dev/null || echo "")
-          DL="${{ env.DOWNLOAD_URL }}"
-          VER="${{ env.VERSION }}"
-          BT="${{ env.BUILDTIME }}"
-          CUSTOM_NOTES="
-          ---
-
-          ## 资源下载列表
-
-          - [用户脚本](${DL}ocs.user.js)
-          - [用户脚本(全域名通用版)](${DL}ocs.common.user.js)
-          - [核心库](${DL}core.js)
-          - [简洁更新日志](${DL}CHANGELOG_SIMPLIFIED.md)
-          - [META](${DL}ocs.meta.js)
-
-          ### 快捷访问
-          - [官网](https://docs.ocsjs.com/)
-
-          Created at ${BT}.
-          "
-
-          gh release edit "$TAG_NAME" --notes "${EXISTING_BODY}${CUSTOM_NOTES}"
+      - name: Publish GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v5.')
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          make_latest: true
+          fail_on_unmatched_files: true
+          files: |
+            dist/ocs.user.js
+            dist/ocs.meta.js
+            dist/ocs.common.user.js
+            dist/ocs.common.meta.js

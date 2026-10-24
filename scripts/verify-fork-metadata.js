@@ -4,7 +4,7 @@ const path = require('node:path');
 const { version } = require('../package.json');
 
 const repo = 'https://github.com/E7G/ocsjs-with-uxy';
-const dist = 'https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist';
+const dist = 'https://github.com/E7G/ocsjs-with-uxy/releases/latest/download';
 const expectedVersion = version + '.1';
 
 function parseHeader(content) {

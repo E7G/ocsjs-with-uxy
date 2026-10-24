@@ -7,8 +7,8 @@ const { version } = require('../package.json');
 // Increase this revision whenever the fork changes without an upstream version bump.
 const scriptVersion = version + '.1';
 const repoURL = 'https://github.com/E7G/ocsjs-with-uxy';
-// Generated userscripts are checked into the fork's 5.0/dist directory.
-const distributionBase = 'https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist';
+// GitHub Actions builds userscripts and publishes them as Release assets.
+const distributionBase = 'https://github.com/E7G/ocsjs-with-uxy/releases/latest/download';
 /** @type {(...args: any[])=> Promise<void>} */
 const execOut = util.promisify(require('./utils').execOut);
 const { createUserScript, createMetaFile } = require('../packages/utils');

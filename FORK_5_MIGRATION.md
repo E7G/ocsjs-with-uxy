@@ -27,15 +27,22 @@ corepack pnpm build
 
 The original fork's `4.0` branch is retained for rollback. Browser compatibility with each live learning platform still requires manual validation; automated compile and resolver tests do not establish live-site compatibility.
 
-## Userscript distribution and updates
+## GitHub Actions build and Release distribution
 
-The standard and all-domain scripts are published as **tracked files under `5.0/dist/`** so userscript managers can download them from stable raw GitHub links. This is separate from the old GitHub Releases artifacts and does not overwrite historical releases.
+Generated `dist/` files are ignored and **not tracked in git**. `.github/workflows/build-and-publish.yml` builds and tests every push to `5.0` (with downloadable CI artifacts), and publishes a GitHub Release when a `v5.*` tag is pushed. Manual workflow dispatch compiles only. The old upstream release-please workflows have been removed.
 
-- Standard install: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.user.js
-- Standard update metadata: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.meta.js
-- All-domain install: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.user.js
-- All-domain update metadata: https://raw.githubusercontent.com/E7G/ocsjs-with-uxy/5.0/dist/ocs.common.meta.js
+- Standard install: https://github.com/E7G/ocsjs-with-uxy/releases/latest/download/ocs.user.js
+- Standard update metadata: https://github.com/E7G/ocsjs-with-uxy/releases/latest/download/ocs.meta.js
+- All-domain install: https://github.com/E7G/ocsjs-with-uxy/releases/latest/download/ocs.common.user.js
+- All-domain update metadata: https://github.com/E7G/ocsjs-with-uxy/releases/latest/download/ocs.common.meta.js
 
-Metadata credits E7G for this fork and enncy / OCS contributors for the original, points the homepage/source/support to this fork, and uses a distinct userscript version suffix (`5.2.3.1` initially). Whenever publishing new fork changes without changing the upstream version, increase the suffix in `scripts/build-core.js` before rebuilding, and commit the four generated files above via `git add -f dist/ocs.user.js dist/ocs.meta.js dist/ocs.common.user.js dist/ocs.common.meta.js`. The development userscript contains local file paths and is deliberately not published or assigned public auto-update URLs.
+Build verification checks the standard, all-domain, and developer variants. The developer script contains local file paths and is neither published nor assigned public auto-update URLs. The original OCS author and contributors are credited; MIT license is retained.
 
-The build automatically verifies metadata across standard, all-domain, and development variants.
+### Publish a new version
+
+1. Increment the version suffix in `scripts/build-core.js` for fork-only changes (e.g. `5.2.3.1` to `5.2.3.2`).
+2. Push source changes to `5.0` and confirm GitHub Actions build passed.
+3. Tag the intended commit with the userscript `@version` and push the tag, e.g. `git tag v5.2.3.2 && git push origin v5.2.3.2`.
+4. GitHub Actions checks the release tag/version, recompiles, publishes the four script and metadata files as Release assets, and marks this release Latest. Never publish the compiled files to the source branch.
+
+Users who installed the previous raw-GitHub `5.0/dist/` build must reinstall once from a Release link to migrate their auto-update URL. New installations update through GitHub Release Latest assets.
