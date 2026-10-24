@@ -24,6 +24,7 @@ function cleanOutput() {
 
 async function testResolver() {
 	await execOut('tsx ../tests/resolver.test.ts');
+	await execOut('tsx ../tests/fork-customization.test.ts');
 }
 
 async function buildPackages() {
@@ -50,8 +51,8 @@ async function createUserJs() {
 
 	/** @return {import('../packages/utils').CreateOptions} */
 	const createOptions = () => {
-		const { CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject } = ocs;
-		const projectList = [CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject]
+		const { CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject, ULearningProject } = ocs;
+		const projectList = [CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject, ULearningProject]
 			.map((s) => `【${s.name}】`)
 			.join(' ');
 
@@ -76,7 +77,7 @@ async function createUserJs() {
 				gap: '\t'.repeat(4)
 			},
 			metadata: {
-				name: 'OCS 网课助手',
+				name: 'OCS-with-uxy 网课助手',
 				version: version,
 				description: [
 					'OCS(online-course-script) 网课助手，官网 https://docs.ocsjs.com ，专注于帮助大学生从网课中释放出来',
@@ -86,9 +87,9 @@ async function createUserJs() {
 				].join(' '),
 				author: 'enncy',
 				license: 'MIT',
-				namespace: 'https://enncy.cn',
-				homepage: 'https://docs.ocsjs.com',
-				source: 'https://github.com/ocsjs/ocsjs',
+				namespace: 'https://github.com/E7G/ocsjs-with-uxy',
+				homepage: 'https://github.com/E7G/ocsjs-with-uxy',
+				source: 'https://github.com/E7G/ocsjs-with-uxy',
 				icon: 'https://cdn.ocsjs.com/logo.png',
 				connect: ['enncy.cn', 'icodef.com', 'ocsjs.com', 'zaizhexue.top', 'localhost', '127.0.0.1',
 					// 智慧树阿里云资源，应用： 图片题资源访问

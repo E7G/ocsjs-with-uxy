@@ -1,4 +1,4 @@
-import { splitAnswer, resolvePlainAnswer } from '../utils';
+import { splitAnswer, resolvePlainAnswer, normalizeChoiceAnswer } from '../utils';
 import { removeRedundant, answerNormalizedMatch, answerSimilarWithGap, normalizeString } from '../../utils/string';
 import { findBestMatch } from 'string-similarity';
 import { StringUtils } from '../../../utils/string';
@@ -43,7 +43,7 @@ export function resolveMultiple(
 	const groups: MultipleMatchGroup[] = [];
 
 	for (let i = 0; i < resultAnswers.length; i++) {
-		const answers = splitAnswer(resultAnswers[i].trim(), separators);
+		const answers = splitAnswer(normalizeChoiceAnswer(resultAnswers[i].trim()), separators);
 
 		// 阶段1: 归一化匹配（包含式）
 		const normalizedGroup: MultipleMatchGroup = {
@@ -131,7 +131,7 @@ export function resolveMultiple(
 	// 纯ABCD答案兜底
 	const plainOptions: string[] = [];
 	for (const answer of resultAnswers) {
-		const ans = StringUtils.nowrap(answer, '').trim();
+		const ans = normalizeChoiceAnswer(StringUtils.nowrap(answer, '').trim());
 		if (resolvePlainAnswer(ans)) {
 			for (const char of ans) {
 				const index = char.charCodeAt(0) - 65;

@@ -1,4 +1,4 @@
-import { splitAnswer, resolvePlainAnswer } from '../utils';
+import { splitAnswer, resolvePlainAnswer, normalizeChoiceAnswer } from '../utils';
 import { removeRedundant, answerNormalizedMatch, answerSimilar } from '../../utils/string';
 import { StringUtils } from '../../../utils/string';
 
@@ -25,7 +25,7 @@ export interface SingleResolveResult {
  * @param separators 答案分隔符
  */
 export function resolveSingle(answers: string[], options: string[], separators?: string[]): SingleResolveResult {
-	const allAnswer = answers.map((a) => splitAnswer(a, separators)).flat();
+	const allAnswer = answers.map((a) => splitAnswer(normalizeChoiceAnswer(a), separators)).flat();
 	const optionStrings = options.map(removeRedundant);
 
 	// ========== 阶段1: 归一化精确匹配 ==========

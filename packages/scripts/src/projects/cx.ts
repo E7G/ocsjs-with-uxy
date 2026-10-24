@@ -931,7 +931,7 @@ function workOrExam(
 
 			if (type && (type === 'completion' || type === 'multiple' || type === 'judgement' || type === 'single')) {
 				const resolver = createDefaultQuestionResolver(ctx, (o) => extractTextWithImages(o).text)[type];
-				return await resolver(searchInfos, elements.options as HTMLElement[], async (type, answer, option) => {
+				return await resolver(searchInfos, uniqueCXOptions(elements.options as HTMLElement[]), async (type, answer, option) => {
 					// 如果存在已经选择的选项
 					if (type === 'judgement' || type === 'single' || type === 'multiple') {
 						if (option?.parentElement && $$el('[class*="check_answer"]', option.parentElement).length === 0) {
@@ -1313,9 +1313,14 @@ const CXAnalyses = {
 	/** 检测页面是否使用字体加密 */
 	getSecretFont(doc: Document = document) {
 		return Array.from(doc.querySelectorAll('.font-cxsecret')).map((font) => {
-			// 这里吧选项按钮和文字分离，如果不分离的话 .font-cxsecret 元素下面还包含选项按钮时，替换时会吧按钮也删除掉导致选项按钮不可用
 			const after = font.querySelector('.after');
-			return after === null ? font : after;
+			if (after?.textContent?.trim()) return after;
+			const next = after?.nextElementSibling;
+			const text = next?.querySelector('.fl:not(.after)');
+			if (text?.textContent?.trim()) return text;
+			if (next?.textContent?.trim()) return next as HTMLElement;
+			const fallback = font.querySelector('.fl:not(.after)');
+			return fallback?.textContent?.trim() ? fallback : after || font;
 		}) as HTMLElement[];
 	},
 	/**
@@ -1804,6 +1809,18 @@ export function fixedVideoProgress() {
 /**
  * 任务点运行器
  */
+/** Avoid matching one DOM option twice when the platform renders nested labels. */
+function uniqueCXOptions(options: HTMLElement[]): HTMLElement[] {
+	const seen = new Set<Element>();
+	return options.filter((option) => {
+		const item = option.closest('li');
+		if (!item) return true;
+		if (seen.has(item)) return false;
+		seen.add(item);
+		return true;
+	});
+}
+
 const JobRunner = {
 	/**
 	 * 播放视频和音频
@@ -2057,7 +2074,7 @@ const JobRunner = {
 							const checked =
 								option?.parentElement?.querySelector('label input')?.getAttribute('checked') === 'checked' ||
 								// 适配2023/9月最新版本
-								option?.parentElement?.getAttribute('aria-checked') === 'true';
+								option?.closest('li')?.getAttribute('aria-checked') === 'true';
 							if (checked) {
 								// 跳过
 							} else {
@@ -2079,7 +2096,7 @@ const JobRunner = {
 						}
 					};
 
-					return await resolver(searchInfos, elements.options as HTMLElement[], handler);
+					return await resolver(searchInfos, uniqueCXOptions(elements.options as HTMLElement[]), handler);
 				}
 				// 连线题自定义处理
 				else if (type && type === 'line') {

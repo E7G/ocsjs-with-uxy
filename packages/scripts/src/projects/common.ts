@@ -22,6 +22,7 @@ import { IMAGE_URL_REGEX } from '../utils/answerer-env';
 import { getAnswererConfigProvider, openAnswererConnect, waitForAnswererConfig } from '../utils/answerer-connect';
 import { confirmRiskyAnswerWrappers } from '../utils/answer-wrapper-security';
 import { initEdgeMinimize } from '../utils/edge-minimize';
+import { getYuketangExamQuestionRoots } from '../utils/yuketang-exam';
 import {
 	createAnswererWrapperSection,
 	createSteps,
@@ -171,6 +172,12 @@ const state = {
 					.item(index)
 					?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			},
+			uxy: (index: number) => {
+				document.querySelectorAll<HTMLElement>('.question-item').item(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			},
+			yuketang: (index: number) => {
+				getYuketangExamQuestionRoots()[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			},
 			icourse: (index: number) => {
 				document
 					.querySelectorAll<HTMLElement>('.u-questionItem,[class*=questionBody]')
@@ -222,7 +229,20 @@ export const CommonProject = Project.create({
 				},
 				answererWrappers: {
 					separator: '自动答题设置',
-					defaultValue: [] as AnswererWrapper[]
+					defaultValue: [{
+						name: '自定义题库local',
+						url: 'http://localhost:8060/adapter-service/search?use=local',
+						method: 'post',
+						type: 'GM_xmlhttpRequest',
+						contentType: 'json',
+						headers: {},
+						data: {
+							question: '${title}',
+							options: { handler: "return (env) => env.options?.split('\\n')" },
+							type: { handler: "return (env) => env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined" }
+						},
+						handler: "return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
+					}] as AnswererWrapper[]
 				},
 				/**
 				 * 禁用的题库
@@ -667,10 +687,10 @@ export const CommonProject = Project.create({
 																},
 																type: {
 																	handler:
-																		" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 3 : env.type === 'judgement' ? 4 : undefined"
+																		" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined"
 																}
 															},
-															handler: "return (res)=>res.answer.allAnswer.map(i=>([res.question,i.join('#')]))"
+															handler: "return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
 														});
 													} else {
 														const contents = value
