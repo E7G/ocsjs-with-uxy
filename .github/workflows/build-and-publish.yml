@@ -37,13 +37,14 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Check TypeScript
-        run: |
-          pnpm exec tsc -p packages/utils/tsconfig.json
-          pnpm exec tsc --noEmit -p packages/scripts/tsconfig.json
+      - name: Compile shared utils
+        run: pnpm exec tsc -p packages/utils/tsconfig.json
 
       - name: Build userscripts and verify metadata
         run: pnpm build
+
+      - name: Check scripts TypeScript after building core
+        run: pnpm exec tsc --noEmit -p packages/scripts/tsconfig.json
 
       - name: Verify release tag and branch history
         if: startsWith(github.ref, 'refs/tags/v5.')

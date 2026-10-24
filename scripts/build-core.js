@@ -3,9 +3,7 @@
 const { series } = require('gulp');
 const del = require('del');
 const util = require('util');
-const { version } = require('../package.json');
-// Increase this revision whenever the fork changes without an upstream version bump.
-const scriptVersion = version + '.1';
+const { scriptVersion } = require('./fork-version');
 const repoURL = 'https://github.com/E7G/ocsjs-with-uxy';
 // GitHub Actions builds userscripts and publishes them as Release assets.
 const distributionBase = 'https://github.com/E7G/ocsjs-with-uxy/releases/latest/download';

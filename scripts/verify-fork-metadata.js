@@ -1,11 +1,11 @@
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
-const { version } = require('../package.json');
+const { scriptVersion: expectedVersion } = require('./fork-version');
 
 const repo = 'https://github.com/E7G/ocsjs-with-uxy';
 const dist = 'https://github.com/E7G/ocsjs-with-uxy/releases/latest/download';
-const expectedVersion = version + '.1';
+// The build and metadata verifier share one fork-version source of truth.
 
 function parseHeader(content) {
   const header = content.match(/\/\/ ==UserScript==[\s\S]*?\/\/ ==\/UserScript==/);
