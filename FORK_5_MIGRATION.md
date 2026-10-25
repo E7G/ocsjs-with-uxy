@@ -40,9 +40,9 @@ Build verification checks the standard, all-domain, and developer variants. The 
 
 ### Publish a new version
 
-1. Increment the version suffix in `scripts/fork-version.js` for fork-only changes (e.g. `5.2.3.2` to `5.2.3.3`).
+1. Increment `forkPatchOffset` in `scripts/fork-version.js` for fork-only releases. The script version is always strict SemVer `MAJOR.MINOR.PATCH` (e.g. upstream `5.2.3` plus patch offset `1` yields `5.2.4`, then offset `2` yields `5.2.5`). Review this offset when upgrading upstream.
 2. Push source changes to `5.0` and confirm GitHub Actions build passed.
-3. Tag the intended commit with the userscript `@version` and push the tag, e.g. `git tag v5.2.3.3 && git push origin v5.2.3.3`.
+3. Tag the intended commit with the userscript `@version` and push the tag, e.g. `git tag v5.2.5 && git push origin v5.2.5`. Do not use four-part versions such as `5.2.3.2`.
 4. GitHub Actions checks the release tag/version, recompiles, publishes the four script and metadata files as Release assets, and marks this release Latest. Never publish the compiled files to the source branch.
 
 Users who installed the previous raw-GitHub `5.0/dist/` build must reinstall once from a Release link to migrate their auto-update URL. New installations update through GitHub Release Latest assets.

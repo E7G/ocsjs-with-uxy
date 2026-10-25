@@ -23,6 +23,8 @@ function one(fields, key) {
   return values[0];
 }
 function verifyForkMetadata(folder) {
+  // Published stable versions must be strict MAJOR.MINOR.PATCH SemVer.
+  assert.match(expectedVersion, /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/, 'Userscript @version must be valid SemVer');
   for (const prefix of ['ocs', 'ocs.common']) {
     const filename = prefix + '.user.js';
     const metaFile = prefix + '.meta.js';
