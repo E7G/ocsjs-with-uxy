@@ -1352,7 +1352,8 @@ export const BackgroundProject = Project.create({
 					IcveMoocProject.scripts.study,
 					IcveMoocProject.scripts.work,
 					YKTProject.scripts.ai,
-					YKTProject.scripts.exam
+					YKTProject.scripts.exam,
+					YKTProject.scripts.yuketangExam
 				]
 					.map((m) => {
 						const url = window.location.href;
