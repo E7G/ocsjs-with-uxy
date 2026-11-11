@@ -71,6 +71,7 @@ jobs:
         with:
           generate_release_notes: true
           make_latest: true
+          overwrite_files: true
           fail_on_unmatched_files: true
           files: |
             dist/ocs.user.js
