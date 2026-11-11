@@ -13,6 +13,7 @@ import { createSteps } from '../utils/ui';
 import { restudy, volume, workNotes } from '../utils/configs';
 import { waitForElement } from '../utils/study';
 import { createYuketangExamWorker } from '../utils/yuketang-exam';
+import { confirmScriptNavigation } from '../utils/navigation';
 import { CommonProject } from './common';
 import { $console, BackgroundProject } from './background';
 import { FontDecryptor, findFontUrls, listFontFaces, watchElements } from '../utils/font-decrypt';
@@ -172,6 +173,7 @@ export const YKTProject = Project.create({
 			async oncomplete() {
 				if (location.href.includes('ai-workspace/lms-graph-mobile')) {
 					$message.warn('即将切换到电脑版AI课程...');
+					if (!confirmScriptNavigation('切换到雨课堂 AI 课程电脑版')) return;
 					await $.sleep(3000);
 					location.href = location.href.replace('lms-graph-mobile', 'lms-graph');
 					return;
@@ -322,6 +324,7 @@ export const YKTProject = Project.create({
 							content: '检测到当前视频全部播放完毕，如果还有未完成的视频请刷新重试，或者打开复习模式。'
 						});
 					}
+					if (!confirmScriptNavigation('进入雨课堂下一任务点')) return;
 					next.click();
 					await $.sleep(200);
 					next.scrollIntoView({ behavior: 'smooth', block: 'center' });
