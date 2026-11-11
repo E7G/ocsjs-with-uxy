@@ -1583,7 +1583,7 @@ export const ZHSProject = Project.create({
 								$console.warn(msg);
 								/** 下一章 */
 								const next = nextElement();
-								if (next) next.click();
+								if (next && confirmScriptNavigation('进入校内课下一章节')) next.click();
 							}, 3000);
 						}
 					}
