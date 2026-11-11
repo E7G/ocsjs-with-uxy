@@ -230,11 +230,19 @@ export const CommonProject = Project.create({
 					defaultValue: $ui.notes([
 						'✨鼠标移动到按钮或者输入框，可以看到提示！',
 						'想要自动答题必须设置 “题库配置” ',
-						'设置后进入章节测试，作业，考试页面即可自动答题。'
+						'默认进入作业、考试和章节测试页面不会自动开始答题；可点击开始按钮，或在全局设置中开启自动开始。'
 					]).outerHTML
 				},
 				OCS_TYPE: {
 					defaultValue: '' as 'dev' | 'common' | 'main' | ''
+				},
+				autoStartAnswering: {
+					label: '自动开始答题',
+					defaultValue: false,
+					attrs: {
+						type: 'checkbox',
+						title: '默认关闭。关闭时进入作业/考试页面只显示“开始答题”按钮；开启后按倒计时自动开始，可随时取消。'
+					}
 				},
 				answererWrappers: {
 					separator: '自动答题设置',
