@@ -29,6 +29,7 @@ import { $console, BackgroundProject } from './background';
 import { $msgwc, CommonWorkOptions, playMedia } from '../utils';
 import { createSteps } from '../utils/ui';
 import { waitForElement, waitForMedia } from '../utils/study';
+import { shouldAutoSelectUnfinishedChapter } from './cx-navigation';
 
 /**
  * 超星 font-cxsecret 解密用的参考特征表（FRB2 位打包格式，wght 350/400 字重特征）。
@@ -753,7 +754,8 @@ export const CXProject = Project.create({
 				}
 
 				// 寻找需要运行的任务
-				if (CXProject.scripts.study.cfg.autoJumpToUnFinishJob) {
+				const studyConfig = CXProject.scripts.study.cfg;
+				if (shouldAutoSelectUnfinishedChapter(studyConfig.mode, studyConfig.autoJumpToUnFinishJob)) {
 					// 过滤掉已完成的章节
 					chapters = chapters.filter((chapter) => chapter.unFinishCount !== 0);
 
@@ -1546,7 +1548,7 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 	top._preChapterId = '';
 
 	// 手动模式
-	if (CXProject.scripts.study.cfg.mode === 'manually') {
+	if (opts.mode === 'manually') {
 		const msg = '页面任务点已完成，自动跳转已关闭，请手动跳转。';
 		$message.warn({ content: msg, duration: 0 });
 		$console.warn(msg);
@@ -1587,13 +1589,13 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 		return;
 	}
 
-	const msg = '页面任务点已完成，即将跳转。' + `(${CXProject.scripts.study.cfg.mode})`;
+	const msg = '页面任务点已完成，即将跳转。' + `(${opts.mode})`;
 	$message.success({ content: msg });
 	$console.info(msg);
 	await $.sleep(3000);
 
 	// 智能模式，并且当前已经完成全部小节，则自动跳章节
-	if (CXProject.scripts.study.cfg.mode === 'job' && CXAnalyses.isInFinalTab()) {
+	if (opts.mode === 'job' && CXAnalyses.isInFinalTab()) {
 		// 检测当前章节是否完成，如果已经完成则下一章
 		// 如果没有需要完成的章节，则暂停运行
 		const chapters = CXAnalyses.getChapterInfos();
