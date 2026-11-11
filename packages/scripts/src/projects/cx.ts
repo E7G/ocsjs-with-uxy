@@ -29,7 +29,6 @@ import { $console, BackgroundProject } from './background';
 import { $msgwc, CommonWorkOptions, playMedia } from '../utils';
 import { createSteps } from '../utils/ui';
 import { waitForElement, waitForMedia } from '../utils/study';
-import { confirmScriptNavigation } from '../utils/navigation';
 
 /**
  * 超星 font-cxsecret 解密用的参考特征表（FRB2 位打包格式，wght 350/400 字重特征）。
@@ -248,7 +247,7 @@ export const CXProject = Project.create({
 						['job', '智能模式', '自动寻找任务点完成'],
 						['manually', '完成后暂停，等待手动跳转', '适用于自己手动运行']
 					],
-					defaultValue: 'manually' as 'next' | 'job' | 'manually'
+					defaultValue: 'job' as 'next' | 'job' | 'manually'
 				},
 				restudy: {
 					label: '复习模式',
@@ -270,7 +269,7 @@ export const CXProject = Project.create({
 						title:
 							'进入学习界面后自动前往未完成的任务点，如果关闭则从当前任务点往下学习 （积分课、智慧课程等课程 建议关闭）'
 					},
-					defaultValue: false
+					defaultValue: true
 				},
 				forceLearn: {
 					elementClassName: 'config-details',
@@ -541,7 +540,7 @@ export const CXProject = Project.create({
 					// 下一页
 					const next = $el('.nodeItem.r i');
 					if (next) {
-						if (confirmScriptNavigation('进入下一阅读章节')) next.click();
+						next.click();
 					} else {
 						if (this.cfg.restartAfterFinish) {
 							setTimeout(() => startAtFirst(), 3000);
@@ -558,7 +557,7 @@ export const CXProject = Project.create({
 				function startAtFirst() {
 					const texts = $$el('.course_section .chapterText');
 					if (texts.length) {
-						if (confirmScriptNavigation('进入第一个阅读章节')) texts[0].click();
+						texts[0].click();
 					}
 				}
 			}
@@ -567,21 +566,16 @@ export const CXProject = Project.create({
 		 * 有时候进入课程会默认在，任务页面，会出现任务为空，部分用户会以为没有章节任务，所以添加此脚本
 		 */
 		pageRedirect: new Script({
-			name: '章节页面自动切换脚本',
+			name: '课程任务页导航提示',
 			matches: [['课程任务页面', 'pageHeader=0']],
 			hideInPanel: true,
-			async oncomplete() {
-				if (top === window) {
-					const a = document.querySelector<HTMLElement>('a[title="章节"]');
-					if (a) {
-						await $.sleep(1000);
-						// 跳转到最新版本的超星
-						if (!confirmScriptNavigation('切换到超星章节列表页面')) return;
-						a.click();
-						$message.info({
-							content: '已经为您自动切换到章节列表页面，手动进入任意章节即可开始自动学习！'
-						});
-					}
+			oncomplete() {
+				if (top !== window) return;
+				const chapterLink = document.querySelector<HTMLElement>('a[title="章节"]');
+				if (chapterLink) {
+					$message.info({
+						content: '当前停留在课程任务页。请手动点击“章节”进入章节列表，再选择要学习的章节。'
+					});
 				}
 			}
 		}),
@@ -597,8 +591,7 @@ export const CXProject = Project.create({
 			hideInPanel: true,
 			async oncomplete() {
 				if (top === window) {
-					if (!confirmScriptNavigation('切换到新版超星页面')) return;
-					$message.warn({
+										$message.warn({
 						content:
 							'OCS网课助手不支持旧版超星, 即将切换到超星新版, 如有其他第三方插件请关闭, 可能有兼容问题导致频繁切换。',
 						duration: 0
@@ -629,7 +622,7 @@ export const CXProject = Project.create({
 							params.set('newMooc', 'true');
 							changed = true;
 						}
-						if (changed && confirmScriptNavigation('切换到新版超星页面')) window.location.replace(newUrl);
+						if (changed) window.location.replace(newUrl);
 					}
 				}
 			}
@@ -667,8 +660,7 @@ export const CXProject = Project.create({
 					});
 					return;
 				}
-				if (!confirmScriptNavigation('打开超星整卷预览考试页面')) return;
-				$message.info({ content: '即将跳转到整卷预览页面进行考试。' });
+								$message.info({ content: '即将跳转到整卷预览页面进行考试。' });
 				setTimeout(() => $gm.unsafeWindow.topreview(), 3000);
 			}
 		}),
@@ -756,16 +748,13 @@ export const CXProject = Project.create({
 				/** 切换新版 */
 				if (mooc === null) {
 					params.set('mooc2', '1');
-					if (confirmScriptNavigation('切换到新版超星课程页面')) {
-						window.location.replace(decodeURIComponent(params.toString()));
-					}
+					window.location.replace(decodeURIComponent(params.toString()));
 					return;
 				}
 
 				// 寻找需要运行的任务
 				if (CXProject.scripts.study.cfg.autoJumpToUnFinishJob) {
-					if (!confirmScriptNavigation('自动前往首个未完成任务点')) return;
-					// 过滤掉已完成的章节
+										// 过滤掉已完成的章节
 					chapters = chapters.filter((chapter) => chapter.unFinishCount !== 0);
 
 					if (chapters.length === 0) {
@@ -1575,9 +1564,7 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 		if (opts.backToFirstWhenFinish) {
 			content = '已经抵达最后一个章节，10秒后返回第一个章节重新开始。';
 			setTimeout(() => {
-				if (confirmScriptNavigation('重新进入第一个章节')) {
-					top?.document.querySelector<HTMLElement>('.posCatalog_name')?.click();
-				}
+				top?.document.querySelector<HTMLElement>('.posCatalog_name')?.click();
 			}, 10 * 1000);
 		} else {
 			if (CXAnalyses.isFinishedAllChapters()) {
@@ -1596,8 +1583,7 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 		return;
 	}
 
-	if (!confirmScriptNavigation('切换到下一章节或小节')) return;
-	const msg = '页面任务点已完成，即将跳转。' + `(${CXProject.scripts.study.cfg.mode})`;
+		const msg = '页面任务点已完成，即将跳转。' + `(${CXProject.scripts.study.cfg.mode})`;
 	$message.success({ content: msg });
 	$console.info(msg);
 	await $.sleep(3000);
