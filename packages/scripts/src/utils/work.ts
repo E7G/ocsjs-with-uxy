@@ -99,10 +99,15 @@ export function commonWork(options: {
 			state.checkFailed = false;
 			state.startBtnPressed = false;
 			await closeAnswerWrapperEmptyWarning();
-			start();
+			if (CommonProject.scripts.settings.cfg.autoStartAnswering === true) {
+				start();
+			} else {
+				renderPanelBody();
+			}
 		}
 	});
 	let workOptions = CommonProject.scripts.settings.methods.getWorkOptions();
+	const autoStartAnswering = CommonProject.scripts.settings.cfg.autoStartAnswering === true;
 
 	/** 本次调用的可变状态（实例隔离，不与其它 commonWork 调用共享） */
 	const state: CommonWorkState = {
@@ -222,7 +227,7 @@ export function commonWork(options: {
 		if (workOptions.answererWrappers.length === 0) {
 			state.checkFailed = true;
 			answerWrapperEmptyWarning(0);
-		} else {
+		} else if (autoStartAnswering) {
 			const delay = options.start_delay_seconds ?? 5;
 			$message.info(`将在 ${delay} 秒后自动答题`);
 			setTimeout(() => {
@@ -232,9 +237,9 @@ export function commonWork(options: {
 				}
 			}, delay * 1000);
 		}
-	} else {
+	} else if (workOptions.answererWrappers.length === 0 || autoStartAnswering) {
 		/**
-		 * 检查题库是否配置，并询问是否开始答题
+		 * 题库未配置时显示警告；题库已配置但未启用自动开始时，保持手动启动按钮
 		 */
 		checkMessage = workPreCheckMessage({
 			onrun: () => state.startBtnPressed === false && start(),
