@@ -12,6 +12,7 @@ import { $msgwc, playMedia, CommonWorkOptions } from '../utils';
 import { createSteps } from '../utils/ui';
 import { restudy, volume, workNotes } from '../utils/configs';
 import { waitForElement } from '../utils/study';
+import { createYuketangExamWorker } from '../utils/yuketang-exam';
 import { CommonProject } from './common';
 import { $console, BackgroundProject } from './background';
 import { FontDecryptor, findFontUrls, listFontFaces, watchElements } from '../utils/font-decrypt';
@@ -348,6 +349,14 @@ export const YKTProject = Project.create({
 			},
 			async oncomplete() {
 				this.onhistorychanged?.('pushed');
+			}
+		}),
+		yuketangExam: new Script({
+			name: '📝 长江雨课堂考试',
+			matches: [['长江雨课堂考试', /-exam\\.yuketang\\.cn\\/exam/]],
+			configs: { notes: workNotes },
+			oncomplete() {
+				commonWork({ mount_script: this, workerProvider: (options) => createYuketangExamWorker(options) });
 			}
 		})
 	}
