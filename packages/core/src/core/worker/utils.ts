@@ -23,6 +23,20 @@ export function defaultWorkTypeResolver(ctx: WorkContext<any>): QuestionTypes | 
 }
 
 /** 判断答案是否为A-Z的文本, 并且字符序号依次递增, 并且 每个字符是否都只出现了一次 */
+/** Normalize common AI/answer-bank letter responses without changing non-choice text. */
+export function normalizeChoiceAnswer(answer: string): string {
+  if (!answer?.trim()) return answer;
+  const value = answer.trim().replace(/^[\s\S]*?<\/think>\s*/i, '').replace(/^答案[：:]\s*/i, '').trim();
+  const separated = /^[A-D](?:\s*[,，、#;；|]\s*[A-D])+$/i;
+  if (separated.test(value)) return (value.match(/[A-D]/gi) || []).join('').toUpperCase();
+  const labeled = value.match(/^([A-D])(?:\s*[.、．:：)]\s*|\s+.+)/i);
+  if (labeled) return labeled[1].toUpperCase();
+  if (/^[A-D]$/i.test(value)) return value.toUpperCase();
+  const picked = value.match(/^(?:选|答案[是为])\s*([A-D])(?:\b|$)/i);
+  if (picked) return picked[1].toUpperCase();
+  return value;
+}
+
 export function isPlainAnswer(answer: string) {
 	answer = answer.trim();
 	if (answer.length > 8 || !/[A-Z]/.test(answer)) {
@@ -52,7 +66,7 @@ export function isPlainAnswer(answer: string) {
  * @param answer  答案
  */
 export function resolvePlainAnswer(answer: string) {
-	const resolve = answer
+	const resolve = normalizeChoiceAnswer(answer)
 		.trim()
 		.replace(/[,，.。．、 #]/g, '')
 		.trim();
