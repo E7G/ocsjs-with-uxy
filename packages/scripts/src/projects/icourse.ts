@@ -271,7 +271,7 @@ export const ICourseProject = Project.create({
 						study();
 
 						async function gotoNextJob() {
-														const list = await next();
+							const list = await next();
 							for (const item of list) {
 								const el = typeof item === 'function' ? item() : item;
 								if (el) {
@@ -503,7 +503,7 @@ export const ICourseProject = Project.create({
 						};
 
 						async function gotoNextJob() {
-														const list = await next();
+							const list = await next();
 							for (const item of list) {
 								const el = typeof item === 'function' ? item() : item;
 								if (el) {

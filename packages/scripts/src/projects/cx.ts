@@ -591,7 +591,7 @@ export const CXProject = Project.create({
 			hideInPanel: true,
 			async oncomplete() {
 				if (top === window) {
-										$message.warn({
+					$message.warn({
 						content:
 							'OCS网课助手不支持旧版超星, 即将切换到超星新版, 如有其他第三方插件请关闭, 可能有兼容问题导致频繁切换。',
 						duration: 0
@@ -660,7 +660,7 @@ export const CXProject = Project.create({
 					});
 					return;
 				}
-								$message.info({ content: '即将跳转到整卷预览页面进行考试。' });
+				$message.info({ content: '即将跳转到整卷预览页面进行考试。' });
 				setTimeout(() => $gm.unsafeWindow.topreview(), 3000);
 			}
 		}),
@@ -754,7 +754,7 @@ export const CXProject = Project.create({
 
 				// 寻找需要运行的任务
 				if (CXProject.scripts.study.cfg.autoJumpToUnFinishJob) {
-										// 过滤掉已完成的章节
+					// 过滤掉已完成的章节
 					chapters = chapters.filter((chapter) => chapter.unFinishCount !== 0);
 
 					if (chapters.length === 0) {
@@ -938,29 +938,33 @@ function workOrExam(
 
 			if (type && (type === 'completion' || type === 'multiple' || type === 'judgement' || type === 'single')) {
 				const resolver = createDefaultQuestionResolver(ctx, (o) => extractTextWithImages(o).text)[type];
-				return await resolver(searchInfos, uniqueCXOptions(elements.options as HTMLElement[]), async (type, answer, option) => {
-					// 如果存在已经选择的选项
-					if (type === 'judgement' || type === 'single' || type === 'multiple') {
-						if (option?.parentElement && $$el('[class*="check_answer"]', option.parentElement).length === 0) {
-							option.click();
-							await $.sleep(500);
-						}
-					} else if (type === 'completion' && answer.trim()) {
-						const text = option?.querySelector('textarea');
-						const textareaFrame = option?.querySelector('iframe');
-						if (text) {
-							text.value = answer;
-						}
-						if (textareaFrame?.contentDocument) {
-							textareaFrame.contentDocument.body.innerHTML = answer;
-						}
-						if (option?.parentElement?.parentElement) {
-							/** 如果存在保存按钮则点击 */
-							$el('[onclick*=saveQuestion]', option?.parentElement?.parentElement)?.click();
-							await $.sleep(500);
+				return await resolver(
+					searchInfos,
+					uniqueCXOptions(elements.options as HTMLElement[]),
+					async (type, answer, option) => {
+						// 如果存在已经选择的选项
+						if (type === 'judgement' || type === 'single' || type === 'multiple') {
+							if (option?.parentElement && $$el('[class*="check_answer"]', option.parentElement).length === 0) {
+								option.click();
+								await $.sleep(500);
+							}
+						} else if (type === 'completion' && answer.trim()) {
+							const text = option?.querySelector('textarea');
+							const textareaFrame = option?.querySelector('iframe');
+							if (text) {
+								text.value = answer;
+							}
+							if (textareaFrame?.contentDocument) {
+								textareaFrame.contentDocument.body.innerHTML = answer;
+							}
+							if (option?.parentElement?.parentElement) {
+								/** 如果存在保存按钮则点击 */
+								$el('[onclick*=saveQuestion]', option?.parentElement?.parentElement)?.click();
+								await $.sleep(500);
+							}
 						}
 					}
-				});
+				);
 			}
 			// 连线题自定义处理
 			else if (type && type === 'line') {
@@ -1583,7 +1587,7 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 		return;
 	}
 
-		const msg = '页面任务点已完成，即将跳转。' + `(${CXProject.scripts.study.cfg.mode})`;
+	const msg = '页面任务点已完成，即将跳转。' + `(${CXProject.scripts.study.cfg.mode})`;
 	$message.success({ content: msg });
 	$console.info(msg);
 	await $.sleep(3000);

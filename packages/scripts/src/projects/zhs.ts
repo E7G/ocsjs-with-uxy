@@ -1284,7 +1284,7 @@ export const ZHSProject = Project.create({
 							await $.sleep(5 * 1000);
 
 							const next = async () => {
-													const nextJob = getNextJob();
+								const nextJob = getNextJob();
 
 								if (nextJob) {
 									const nextJobTitle = nextJob.querySelector('.common-text') as HTMLElement;
@@ -1666,7 +1666,7 @@ export const ZHSProject = Project.create({
 				});
 
 				const next = async () => {
-										const hidden = $el('.chapter-wrapper.hidden');
+					const hidden = $el('.chapter-wrapper.hidden');
 					if (hidden) {
 						if (processor.remotePage) {
 							await processor.remotePage.click('.collapse-box');
@@ -1956,7 +1956,7 @@ export const ZHSProject = Project.create({
 				const getChapterName = () => document.querySelector('.active-file')?.textContent?.trim() || '未知章节';
 
 				const next = async () => {
-										const nextJob = processor.getNext({ next: true, restudy: this.cfg.restudy });
+					const nextJob = processor.getNext({ next: true, restudy: this.cfg.restudy });
 					if (nextJob) {
 						nextJob.click();
 						await $.sleep(3000);
@@ -2149,7 +2149,7 @@ export const ZHSProject = Project.create({
 				});
 
 				const next = async () => {
-										// 打开章节列表
+					// 打开章节列表
 					document.querySelector('.drawer-panel')?.classList.add('active');
 					await $.sleep(1000);
 

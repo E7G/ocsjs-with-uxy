@@ -91,7 +91,7 @@ export const ZJYProject = Project.create({
 					content: '脚本只支持旧版职教云，即将跳转到<b>旧版</b>职教云页面...',
 					maskCloseable: false
 				});
-								setTimeout(() => {
+				setTimeout(() => {
 					location.href = '/study/index';
 				}, 5000);
 			}
@@ -473,7 +473,7 @@ async function next(type: 'classroomNow' | 'normal') {
 			return;
 		}
 
-				await $.sleep(3000);
+		await $.sleep(3000);
 		const url = new URL(window.location.href);
 		if (nextObject.courseDesignId) {
 			url.searchParams.set('courseDesignId', nextObject.courseDesignId);

@@ -172,7 +172,7 @@ export const YKTProject = Project.create({
 			async oncomplete() {
 				if (location.href.includes('ai-workspace/lms-graph-mobile')) {
 					$message.warn('即将切换到电脑版AI课程...');
-										await $.sleep(3000);
+					await $.sleep(3000);
 					location.href = location.href.replace('lms-graph-mobile', 'lms-graph');
 					return;
 				}
@@ -322,7 +322,7 @@ export const YKTProject = Project.create({
 							content: '检测到当前视频全部播放完毕，如果还有未完成的视频请刷新重试，或者打开复习模式。'
 						});
 					}
-										next.click();
+					next.click();
 					await $.sleep(200);
 					next.scrollIntoView({ behavior: 'smooth', block: 'center' });
 					await $.sleep(3000);

@@ -1,5 +1,5 @@
 import { OCSWorker, $, createDefaultQuestionResolver } from '@ocsjs/core';
-import { Project, Script, $el, $message, $ui } from 'easy-us';
+import { Project, Script, $message, $ui } from 'easy-us';
 import { CommonWorkOptions, playMedia } from '../utils';
 import { CommonProject } from './common';
 import { commonWork, createCommonAnswerer, updateDynamicResult } from '../utils/work';
@@ -219,7 +219,7 @@ async function navigateToNext() {
 		// 使用规范化文本比较
 		const btnText = nextButton.innerText.replace(/\s/g, '').toLowerCase();
 		if (btnText.includes('下一页') || btnText.includes('next')) {
-						$message.success({ content: '下一页', duration: 0 });
+			$message.success({ content: '下一页', duration: 0 });
 			nextButton.click();
 			await $.sleep(1000); // 增加页面加载等待时间
 			return true;
