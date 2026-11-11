@@ -715,7 +715,7 @@ export const BackgroundProject = Project.create({
 			namespace: 'background.update',
 			configs: {
 				notes: {
-					defaultValue: '脚本自动更新模块，如果有新的版本会自动通知。'
+					defaultValue: '此处仅手动查看版本和更新日志，不会自动弹出更新提示。'
 				},
 			},
 			methods() {
