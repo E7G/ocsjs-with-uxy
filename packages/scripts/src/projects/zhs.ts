@@ -29,7 +29,6 @@ import {
 import { $msgwc, CommonWorkOptions, playMedia } from '../utils';
 import { createSteps } from '../utils/ui';
 import { $console, BackgroundProject } from './background';
-import { confirmScriptNavigation } from '../utils/navigation';
 import { waitForMedia, waitForElement, waitFor } from '../utils/study';
 import { $playwright } from '../utils/app';
 import { $render } from '../utils/render';
@@ -1285,8 +1284,7 @@ export const ZHSProject = Project.create({
 							await $.sleep(5 * 1000);
 
 							const next = async () => {
-					if (!confirmScriptNavigation('进入智慧树下一章节或任务点')) return;
-								const nextJob = getNextJob();
+													const nextJob = getNextJob();
 
 								if (nextJob) {
 									const nextJobTitle = nextJob.querySelector('.common-text') as HTMLElement;
@@ -1573,7 +1571,7 @@ export const ZHSProject = Project.create({
 								setTimeout(() => {
 									/** 下一章 */
 									const next = nextElement();
-									if (next && confirmScriptNavigation('进入校内课下一章节')) next.click();
+									if (next) next.click();
 								}, 3000);
 							});
 						} else {
@@ -1583,7 +1581,7 @@ export const ZHSProject = Project.create({
 								$console.warn(msg);
 								/** 下一章 */
 								const next = nextElement();
-								if (next && confirmScriptNavigation('进入校内课下一章节')) next.click();
+								if (next) next.click();
 							}, 3000);
 						}
 					}
@@ -1668,8 +1666,7 @@ export const ZHSProject = Project.create({
 				});
 
 				const next = async () => {
-					if (!confirmScriptNavigation('进入智慧树下一章节或任务点')) return;
-					const hidden = $el('.chapter-wrapper.hidden');
+										const hidden = $el('.chapter-wrapper.hidden');
 					if (hidden) {
 						if (processor.remotePage) {
 							await processor.remotePage.click('.collapse-box');
@@ -1811,7 +1808,7 @@ export const ZHSProject = Project.create({
 						$message.error(msg);
 						$console.log(msg);
 						setTimeout(() => {
-							if (confirmScriptNavigation('刷新当前智慧树课程页面')) location.reload();
+							location.reload();
 						}, 3000);
 					} else {
 						const msg = '视频加载失败，即将跳过。';
@@ -1959,8 +1956,7 @@ export const ZHSProject = Project.create({
 				const getChapterName = () => document.querySelector('.active-file')?.textContent?.trim() || '未知章节';
 
 				const next = async () => {
-					if (!confirmScriptNavigation('进入智慧树下一章节或任务点')) return;
-					const nextJob = processor.getNext({ next: true, restudy: this.cfg.restudy });
+										const nextJob = processor.getNext({ next: true, restudy: this.cfg.restudy });
 					if (nextJob) {
 						nextJob.click();
 						await $.sleep(3000);
@@ -2013,7 +2009,7 @@ export const ZHSProject = Project.create({
 						$message.error(msg);
 						$console.log(msg);
 						setTimeout(() => {
-							if (confirmScriptNavigation('刷新当前智慧树课程页面')) location.reload();
+							location.reload();
 						}, 3000);
 					} else {
 						const msg = '视频加载失败，即将跳过。';
@@ -2153,8 +2149,7 @@ export const ZHSProject = Project.create({
 				});
 
 				const next = async () => {
-					if (!confirmScriptNavigation('进入智慧树下一章节或任务点')) return;
-					// 打开章节列表
+										// 打开章节列表
 					document.querySelector('.drawer-panel')?.classList.add('active');
 					await $.sleep(1000);
 
@@ -2207,7 +2202,7 @@ export const ZHSProject = Project.create({
 						$message.error(msg);
 						$console.log(msg);
 						setTimeout(() => {
-							if (confirmScriptNavigation('刷新当前智慧树课程页面')) location.reload();
+							location.reload();
 						}, 3000);
 					} else {
 						const msg = '视频加载失败，即将跳过。';
