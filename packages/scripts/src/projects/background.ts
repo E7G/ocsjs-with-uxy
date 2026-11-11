@@ -17,8 +17,6 @@ import {
 	$menu,
 	cors
 } from 'easy-us';
-import semver_gt from 'semver/functions/gt';
-import semver_valid from 'semver/functions/valid';
 import { CommonProject } from './common';
 import { CXProject, definedProjects, ICourseProject, IcveMoocProject, YKTProject, ZHSProject, ZJYProject } from '..';
 import { RenderScript } from '../render';
@@ -719,17 +717,6 @@ export const BackgroundProject = Project.create({
 				notes: {
 					defaultValue: '脚本自动更新模块，如果有新的版本会自动通知。'
 				},
-				autoNotify: {
-					defaultValue: true,
-					label: '开启更新通知',
-					attrs: { type: 'checkbox', title: '当有最新的版本时自动弹窗通知，默认开启' }
-				},
-				notToday: {
-					defaultValue: -1
-				},
-				ignoreVersions: {
-					defaultValue: [] as string[]
-				}
 			},
 			methods() {
 				return {
@@ -787,73 +774,9 @@ export const BackgroundProject = Project.create({
 						h('div', ['脚本更新链接：', h('a', { target: '_blank', href: updatePage }, [updatePage || '无'])])
 					])
 				);
-				console.log('versions', {
-					notToday: this.cfg.notToday,
-					ignoreVersions: this.cfg.ignoreVersions,
-					version: version
-				});
 			},
 			oncomplete() {
-				if (this.cfg.autoNotify && $.isInTopWindow()) {
-					if (this.cfg.notToday === -1 || this.cfg.notToday !== new Date().getDate()) {
-						const infos = $gm.getInfos();
-						if (infos) {
-							// 版本表达式验证
-							if (!!semver_valid(infos.script.version) === false) {
-								$message.error(`当前版本号 (${infos.script.version}) 不符合semver版本书写规范，请重新修改版本。`);
-								return;
-							}
-
-							// 避免阻挡用户操作，这里等页面运行一段时间后再进行更新提示
-							setTimeout(async () => {
-								const version = await this.methods.getLastVersion();
-								const last = version['last-version'];
-
-								if (
-									// 跳过主动忽略的版本
-									this.cfg.ignoreVersions.includes(last) === false &&
-									// 版本比较
-									semver_gt(last, infos.script.version)
-								) {
-									const updatePage = this.startConfig?.updatePage || '';
-									const modal = $modal.confirm({
-										maskCloseable: false,
-										width: 600,
-										content: $ui.notes([`检测到新版本发布 ${last} ：`, [...(version.notes || [])]]),
-										footer: h('div', [
-											h('button', { className: 'base-style-button-secondary', innerText: '跳过此版本' }, (btn) => {
-												btn.onclick = () => {
-													this.cfg.ignoreVersions = [...this.cfg.ignoreVersions, last];
-													modal?.remove();
-												};
-											}),
-											h('button', { className: 'base-style-button-secondary', innerText: '今日不再提示' }, (btn) => {
-												btn.onclick = () => {
-													this.cfg.notToday = new Date().getDate();
-													modal?.remove();
-												};
-											}),
-											h(
-												'button',
-												{ className: 'base-style-button', style: { marginLeft: '4px' }, innerText: '前往更新' },
-												(btn) => {
-													btn.onclick = () => {
-														if (updatePage) {
-															window.open(updatePage, '_blank');
-															modal?.remove();
-														} else {
-															$message.error({ content: '无法前往更新页面，更新链接为空' });
-														}
-													};
-												}
-											)
-										])
-									});
-								}
-							}, 5 * 1000);
-						}
-					}
-				}
+				// 自动更新弹窗已禁用。用户可在此面板查看版本并手动打开更新链接。
 			}
 		}),
 		dev: new Script({
