@@ -218,12 +218,16 @@ export function commonWork(options: {
 	// 控制区域与搜索结果区域只嵌入当前（学校）脚本面板；
 	// CommonProject 的"搜索结果"脚本面板保持其自身 onrender 的纯结果区，不显示控制按钮，
 	// 也避免同一个 DOM 元素被两个面板互相"偷走"导致状态不同步
-	if (options.mount_script) bindCommonWorkRender(options.mount_script, renderPanelBody);
+	if (options.mount_script) {
+		bindCommonWorkRender(options.mount_script, renderPanelBody);
+		// Render once immediately in case the panel's initial render happened before binding.
+		renderPanelBody();
+	}
 
 	let checkMessage: MessageElement | Promise<void> | undefined;
 	if (iframeControl) {
 		// 子 iframe 操控模式：$message 经 cors 转发到顶层时无法执行交互回调（取消/倒计时结束），
-		// 不能使用交互式预检；但自动答题必须触发，简化为直接校验题库配置 + 延迟自动开始
+		// 因此仅在用户显式开启自动开始时使用延迟启动；默认保留手动开始按钮
 		if (workOptions.answererWrappers.length === 0) {
 			state.checkFailed = true;
 			answerWrapperEmptyWarning(0);
