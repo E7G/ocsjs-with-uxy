@@ -356,7 +356,7 @@ export const YKTProject = Project.create({
 		}),
 		yuketangExam: new Script({
 			name: '📝 长江雨课堂考试',
-			matches: [['长江雨课堂考试', /-exam\\.yuketang\\.cn\\/exam/]],
+			matches: [['长江雨课堂考试', /-exam\.yuketang\.cn\/exam/]],
 			configs: { notes: workNotes },
 			oncomplete() {
 				commonWork({ mount_script: this, workerProvider: (options) => createYuketangExamWorker(options) });
