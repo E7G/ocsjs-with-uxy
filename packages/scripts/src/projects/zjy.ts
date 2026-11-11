@@ -2,11 +2,12 @@ import { $, OCSWorker } from '@ocsjs/core';
 import { Project, Script, $ui, $el, $message, $modal, h } from 'easy-us';
 import { volume } from '../utils/configs';
 import { waitForMedia, waitForElement } from '../utils/study';
-import { $msg, CommonWorkOptions, playMedia } from '../utils';
+import { $msgwc, CommonWorkOptions, playMedia } from '../utils';
 import { createSteps } from '../utils/ui';
 import { $console, BackgroundProject } from './background';
 import { CommonProject } from './common';
 import { commonWork, createCommonAnswerer, simplifyWorkResult } from '../utils/work';
+import { confirmScriptNavigation } from '../utils/navigation';
 
 type CourseType = {
 	levelName: string;
@@ -85,12 +86,13 @@ export const ZJYProject = Project.create({
 			matches: [['新版智慧职教', 'zjy2.icve.com.cn/study/v2/']],
 			hideInPanel: true,
 			oncomplete() {
-				$msg.info('脚本只支持旧版职教云，即将跳转到旧版职教云页面...');
+				$msgwc.info('脚本只支持旧版职教云，即将跳转到旧版职教云页面...');
 				$modal.alert({
 					title: '提示',
 					content: '脚本只支持旧版职教云，即将跳转到<b>旧版</b>职教云页面...',
 					maskCloseable: false
 				});
+				if (!confirmScriptNavigation('切换到职教云旧版学习页面')) return;
 				setTimeout(() => {
 					location.href = '/study/index';
 				}, 5000);
@@ -469,10 +471,11 @@ async function next(type: 'classroomNow' | 'normal') {
 		// 使用自带的跳转功能更加兼容，防止数据错乱（使用url跳转学习记录可能会不一致）
 		// 这里根据判断ID是否相同，否则强制跳过讨论或者测验
 		if (vue?.nextObj?.id && nextObject.id === vue.nextObj.id) {
-			vue.preNext(vue.nextObj);
+			if (confirmScriptNavigation('进入职教云下一任务点')) vue.preNext(vue.nextObj);
 			return;
 		}
 
+		if (!confirmScriptNavigation('进入职教云下一任务点')) return;
 		await $.sleep(3000);
 		const url = new URL(window.location.href);
 		if (nextObject.courseDesignId) {

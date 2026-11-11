@@ -163,6 +163,12 @@ const state = {
 			'zhs-hike': (index: number) => {
 				document.querySelectorAll<HTMLElement>('.q_main_right .card_ul .card_li').item(index)?.click();
 			},
+			'zhs-hike-answer-training': (index: number) => {
+				document
+					.querySelectorAll<HTMLElement>('.base-question-component')
+					.item(index)
+					?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+			},
 			icve: (index: number) => {
 				document.querySelectorAll<HTMLElement>(`.sheet_nums [id*="sheetSeq"]`).item(index)?.click();
 			},
@@ -224,8 +230,19 @@ export const CommonProject = Project.create({
 					defaultValue: $ui.notes([
 						'✨鼠标移动到按钮或者输入框，可以看到提示！',
 						'想要自动答题必须设置 “题库配置” ',
-						'设置后进入章节测试，作业，考试页面即可自动答题。'
+						'默认进入作业、考试和章节测试页面不会自动开始答题；可点击开始按钮，或在全局设置中开启自动开始。'
 					]).outerHTML
+				},
+				OCS_TYPE: {
+					defaultValue: '' as 'dev' | 'common' | 'main' | ''
+				},
+				autoStartAnswering: {
+					label: '自动开始答题',
+					defaultValue: false,
+					attrs: {
+						type: 'checkbox',
+						title: '默认关闭。关闭时进入作业/考试页面只显示“开始答题”按钮；开启后按倒计时自动开始，可随时取消。'
+					}
 				},
 				answererWrappers: {
 					separator: '自动答题设置',
@@ -271,6 +288,7 @@ export const CommonProject = Project.create({
 						return getAnswererConfigProvider() ? createAnswererModeDropdown() : '';
 					},
 					onload() {
+						const OCS_TYPE = CommonProject.scripts.settings.cfg.OCS_TYPE;
 						const aws: any[] = CommonProject.scripts.settings.cfg.answererWrappers || [];
 						this.value = aws.length ? aws.length + ' 个可用题库（点击进入配置）' : '点击进入配置';
 
@@ -571,14 +589,18 @@ export const CommonProject = Project.create({
 										]
 									)
 								],
-								[
-									h(
-										'div',
-										{ className: 'secondary' },
-										'⚠️ 如果想添加多个不同的题库配置，请在每个配置之间使用三个井号隔开: ###。'
-									)
-								],
-								[h('div', { className: 'secondary' }, '⚠️ 配置第三方题库出现网页弹窗的，点击永久允许连接。')]
+								...(OCS_TYPE === 'common'
+									? [
+											[
+												h(
+													'div',
+													{ className: 'secondary' },
+													'⚠️ 如果想添加多个不同的题库配置，请在每个配置之间使用三个井号隔开: ###。'
+												)
+											],
+											[h('div', { className: 'secondary' }, '⚠️ 配置第三方题库出现网页弹窗的，点击永久允许连接。')]
+									  ]
+									: [])
 							]);
 
 							/** 清空题库配置（确认后清空并关闭弹窗），一键获取/手动配置弹窗共用 */
@@ -1099,7 +1121,8 @@ export const CommonProject = Project.create({
 				};
 			},
 			// 实时更新内部设置
-			oncomplete() {
+			oncomplete({ OCS_TYPE }) {
+				this.cfg.OCS_TYPE = OCS_TYPE;
 				AnswerWrapperHandlerConfig.timeout_seconds = this.cfg.answerWrapperHandlerTimeout;
 				this.onConfigChange('answerWrapperHandlerTimeout', (sec) => {
 					AnswerWrapperHandlerConfig.timeout_seconds = sec;
@@ -1465,7 +1488,8 @@ export const CommonProject = Project.create({
 				});
 				CommonProject.scripts.workResults.on('work-current-result-change', (cur) => {
 					if (cur.searching) {
-						if (working_msg) working_msg.innerHTML = loadingSpinSvg + ` 正在搜题 ${formatQuestionForMessage(cur.question)}`;
+						if (working_msg)
+							working_msg.innerHTML = loadingSpinSvg + ` 正在搜题 ${formatQuestionForMessage(cur.question)}`;
 					}
 				});
 			}

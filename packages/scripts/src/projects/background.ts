@@ -1,3 +1,4 @@
+import debounce from 'lodash/debounce';
 import { RemotePlaywright, request } from '@ocsjs/core';
 import type { SearchInformation, SimplifyWorkResult } from '@ocsjs/core';
 import { markdown } from '../utils/markdown';
@@ -13,10 +14,9 @@ import {
 	h,
 	$,
 	MessageElement,
-	$menu
+	$menu,
+	cors
 } from 'easy-us';
-import semver_gt from 'semver/functions/gt';
-import semver_valid from 'semver/functions/valid';
 import { CommonProject } from './common';
 import { CXProject, definedProjects, ICourseProject, IcveMoocProject, YKTProject, ZHSProject, ZJYProject } from '..';
 import { RenderScript } from '../render';
@@ -56,6 +56,84 @@ type RequestList = {
  * 题库缓存类型
  */
 type QuestionCache = { title: string; answer: string; from: string; homepage: string; ai?: boolean };
+
+/** 题库缓存单条大小上限：超过则不入库（异常巨型条目无缓存价值，且会放大 GM 全量序列化耗时） */
+const QUESTION_CACHE_ITEM_MAX_BYTES = 64 * 1024;
+/** 题库缓存总大小上限：超过则从尾部（最旧）剔除直至达标 */
+const QUESTION_CACHE_TOTAL_MAX_BYTES = 1024 * 1024;
+
+/** UTF-8 字节长度（与「开发者调试」面板 Store 占用统计口径一致） */
+const byteLengthOf = (text: string) => new TextEncoder().encode(text).length;
+
+/**
+ * 题库缓存（内存态，页面关闭后自动清除）。
+ * 此前持久化在 GM 存储（background.data.localQuestionCaches），大存储会放大每次
+ * GM_setValue 的全量序列化耗时，故改为纯内存；历史遗留键在 data 脚本 onstart 中清理。
+ *
+ * 【多 iframe 共享】缓存本体仅存于顶层帧内存，iframe 内通过 cors 顶层函数读写
+ * （不使用 tab 存储：setTab 会对大数组做全量序列化，写放大严重）。
+ */
+const localQuestionCaches: QuestionCache[] = [];
+
+/** 向缓存追加条目（含条数/总量限制，仅在顶层帧执行） */
+function addToLocalQuestionCaches(items: QuestionCache[]) {
+	for (const item of items) {
+		// 去重
+		if (localQuestionCaches.find((c) => c.title === item.title && c.answer === item.answer) === undefined) {
+			localQuestionCaches.unshift(item);
+		}
+	}
+
+	// 限制数量
+	localQuestionCaches.splice(200);
+
+	// 限制总字节数：从尾部（最旧）剔除直至达标
+	let totalBytes = 0;
+	for (let i = 0; i < localQuestionCaches.length; i++) {
+		totalBytes += byteLengthOf(localQuestionCaches[i].title) + byteLengthOf(localQuestionCaches[i].answer);
+		if (totalBytes > QUESTION_CACHE_TOTAL_MAX_BYTES) {
+			localQuestionCaches.splice(i);
+			break;
+		}
+	}
+}
+
+/** 在缓存中查找匹配答案（仅在顶层帧执行） */
+function findInLocalQuestionCaches(title: string): SearchInformation[] {
+	const results: SearchInformation[] = [];
+	for (const cache of localQuestionCaches) {
+		if (cache.title.trim() === title.trim()) {
+			results.push({
+				name: cache.from,
+				homepage: cache.homepage,
+				results: [{ answer: cache.answer, question: cache.title, extra_data: { ai: cache.ai, cache: true } }]
+			});
+		}
+	}
+	return results;
+}
+
+/**
+ * 题库缓存的跨 frame 读写代理。
+ * 顶层帧调用时直接执行本地函数；iframe 调用时经 cors 事件路由到顶层帧执行。
+ */
+const questionCacheTopStore = {
+	add: cors.defineTopFunction((items: QuestionCache[]) => {
+		addToLocalQuestionCaches(items);
+	}),
+	// 返回值经 GM 事件传输，defineTopFunction 类型约束仅允许原始类型，故序列化为 JSON 字符串
+	search: cors.defineTopFunction((title: string) => {
+		return JSON.stringify(findInLocalQuestionCaches(title));
+	}),
+	/** 读取全部缓存（管理弹窗用） */
+	list: cors.defineTopFunction(() => {
+		return JSON.stringify(localQuestionCaches);
+	}),
+	/** 清空缓存（管理弹窗用） */
+	clear: cors.defineTopFunction(() => {
+		localQuestionCaches.length = 0;
+	})
+};
 
 /**
  * 监听网页开发者工具打开事件（仅触发一次，多种方式组合检测）。
@@ -98,7 +176,6 @@ function onDevtoolsOpen(callback: () => void) {
 		const heightDiff = window.outerHeight - window.innerHeight;
 		if (widthDiff > 160 || heightDiff > 160) {
 			trigger();
-			
 		}
 	}, 1000);
 }
@@ -194,16 +271,25 @@ export const BackgroundProject = Project.create({
 				};
 
 				const { div, logs } = showLogs();
+				/** 已渲染的最后一条日志对象（按引用比对；日志写入为 2s 防抖批量，一次变更可能包含多条新日志，需全部追加） */
+				let lastRenderedLog = this.cfg.logs[this.cfg.logs.length - 1];
 
 				this.offConfigChange(state.console.listenerIds.logs);
 				state.console.listenerIds.logs = this.onConfigChange('logs', (logs) => {
-					const log = createLog(logs[logs.length - 1]);
-					div.append(log);
-					setTimeout(() => {
-						if (isScrollBottom(div)) {
-							log.scrollIntoView();
-						}
-					}, 10);
+					const startIndex = lastRenderedLog ? logs.lastIndexOf(lastRenderedLog) + 1 : 0;
+					lastRenderedLog = logs[logs.length - 1];
+					let lastLogEl: HTMLElement | undefined;
+					for (const log of logs.slice(startIndex)) {
+						lastLogEl = createLog(log);
+						div.append(lastLogEl);
+					}
+					if (lastLogEl) {
+						setTimeout(() => {
+							if (isScrollBottom(div)) {
+								lastLogEl?.scrollIntoView();
+							}
+						}, 10);
+					}
 				});
 
 				const show = () => {
@@ -226,34 +312,39 @@ export const BackgroundProject = Project.create({
 			configs: {
 				notes: {
 					defaultValue: '这里是一些其他的应用或者拓展功能。'
-				},
-				/**
-				 * 题库缓存
-				 */
-				localQuestionCaches: {
-					defaultValue: [] as QuestionCache[],
-					extra: {
-						appConfigSync: false
-					}
 				}
+			},
+			onstart() {
+				// 清理历史遗留的持久化题库缓存键（题库缓存已改为内存态，不再使用 GM 存储）
+				$store.delete('background.data.localQuestionCaches');
 			},
 			methods() {
 				return {
 					/**
 					 * 添加题库缓存
+					 *
+					 * 三层限制控制内存占用：
+					 * 1. 单条 64KB：超过直接跳过（在发送前过滤，避免大条目跨 frame 传输）
+					 * 2. 条数 200：超出截断
+					 * 3. 总量 1MB：从尾部（最旧）剔除直至达标
+					 *
+					 * 多 iframe 场景：iframe 内经 cors 路由到顶层帧写入（缓存本体仅存于顶层帧内存）。
 					 */
 					addQuestionCache: async (...questionCacheItems: QuestionCache[]) => {
-						const questionCaches: QuestionCache[] = this.cfg.localQuestionCaches;
-						for (const item of questionCacheItems) {
-							// 去重
-							if (questionCaches.find((c) => c.title === item.title && c.answer === item.answer) === undefined) {
-								questionCaches.unshift(item);
-							}
+						// 单条大小限制
+						const items = questionCacheItems.filter(
+							(item) => byteLengthOf(item.title) + byteLengthOf(item.answer) <= QUESTION_CACHE_ITEM_MAX_BYTES
+						);
+						if (items.length === 0) {
+							return;
 						}
 
-						// 限制数量
-						questionCaches.splice(200);
-						this.cfg.localQuestionCaches = questionCaches;
+						// cors.defineTopFunction 在非 GM 环境为空操作（noop），降级为本地写入
+						if ($gm.isInGMContext() === false) {
+							addToLocalQuestionCaches(items);
+						} else {
+							await questionCacheTopStore.add(items);
+						}
 					},
 					addQuestionCacheFromWorkResult(swr: SimplifyWorkResult[]) {
 						BackgroundProject.scripts.data.methods.addQuestionCache(
@@ -289,27 +380,27 @@ export const BackgroundProject = Project.create({
 							return await whenSearchEmpty();
 						}
 
-						let results: SearchInformation[] = [];
-						const caches = this.cfg.localQuestionCaches;
-						for (const cache of caches) {
-							if (cache.title.trim() === title.trim()) {
-								results.push({
-									name: cache.from,
-									homepage: cache.homepage,
-									results: [{ answer: cache.answer, question: cache.title, extra_data: { ai: cache.ai, cache: true } }]
-								});
-							}
-						}
+						// cors.defineTopFunction 在非 GM 环境为空操作（noop），降级为本地查询；
+						// iframe 内调用经 cors 路由到顶层帧查询（缓存本体仅存于顶层帧内存）
+						const results: SearchInformation[] =
+							$gm.isInGMContext() === false
+								? findInLocalQuestionCaches(title)
+								: JSON.parse(((await questionCacheTopStore.search(title)) as string) || '[]');
+
 						if (results.length === 0) {
-							results = await whenSearchEmpty();
+							return await whenSearchEmpty();
 						}
 						return results;
 					},
 					/**
 					 * 展示题库缓存管理弹窗
 					 */
-					showQuestionCaches: () => {
-						const questionCaches = this.cfg.localQuestionCaches;
+					showQuestionCaches: async () => {
+						// 经 cors 读取顶层帧缓存：iframe 中打开管理弹窗时本地数组为空，必须路由到顶层
+						const questionCaches: QuestionCache[] =
+							$gm.isInGMContext() === false
+								? localQuestionCaches.map((c) => ({ ...c }))
+								: JSON.parse(((await questionCacheTopStore.list()) as string) || '[]');
 
 						const list = questionCaches.map((c) =>
 							h(
@@ -348,8 +439,8 @@ export const BackgroundProject = Project.create({
 							content: h('div', [
 								h('div', { className: 'notes card' }, [
 									$ui.notes([
-										'题库缓存是将题库的题目和答案保存在内存，在重复使用时可以直接从内存获取，不需要再次请求题库。',
-										'以下是当前存储的题库，默认存储200题，当前页面关闭后会自动清除。'
+										'题库缓存是将题库的题目和答案保存在内存中，重复使用时直接读取缓存，不需要再次请求题库。',
+										'默认最多存储 200 题（单条最大 64KB，总量最大 1MB，超限自动剔除最旧记录），当前页面关闭后会自动清除。'
 									])
 								]),
 								h('div', { className: 'card' }, [
@@ -357,8 +448,13 @@ export const BackgroundProject = Project.create({
 										[
 											countEl,
 											$ui.button('清空题库缓存', {}, (btn) => {
-												btn.onclick = () => {
-													this.cfg.localQuestionCaches = [];
+												btn.onclick = async () => {
+													// 经 cors 清空顶层帧缓存
+													if ($gm.isInGMContext() === false) {
+														localQuestionCaches.length = 0;
+													} else {
+														await questionCacheTopStore.clear();
+													}
 													countEl.innerText = '当前缓存数量：0';
 													list.forEach((el) => el.remove());
 												};
@@ -461,10 +557,25 @@ export const BackgroundProject = Project.create({
 					}
 					this.cfg.sync_status = 'unconnect';
 					try {
+						// M-1：数据接口已加入 auth-token 校验（桌面端安全加固），同步前先取令牌。
+						// 与 RemotePlaywright 同一发放口（GM_xhr 不受页面 CSP 限制）；
+						// 取不到时令牌为空字符串，后续请求失败会按原有容错进入 unconnect。
+						let authToken = '';
+						try {
+							authToken = await request('http://localhost:15319/get-actions-key', {
+								type: 'GM_xmlhttpRequest',
+								method: 'get',
+								responseType: 'text'
+							});
+						} catch {
+							// 桌面端未启动或旧版本无此接口：忽略，按原流程降级
+						}
+						const authHeaders = { 'auth-token': authToken };
 						const res = await request('http://localhost:15319/browser', {
 							type: 'GM_xmlhttpRequest',
 							method: 'get',
-							responseType: 'json'
+							responseType: 'json',
+							headers: authHeaders
 						});
 						if (!res) {
 							this.cfg.sync_status = 'unconnect';
@@ -473,7 +584,8 @@ export const BackgroundProject = Project.create({
 						const open_sync = await request('http://localhost:15319/is-browser-config-sync', {
 							type: 'GM_xmlhttpRequest',
 							method: 'get',
-							responseType: 'text'
+							responseType: 'text',
+							headers: authHeaders
 						});
 
 						if (open_sync !== 'true') {
@@ -603,19 +715,8 @@ export const BackgroundProject = Project.create({
 			namespace: 'background.update',
 			configs: {
 				notes: {
-					defaultValue: '脚本自动更新模块，如果有新的版本会自动通知。'
+					defaultValue: '此处仅手动查看版本和更新日志，不会自动弹出更新提示。'
 				},
-				autoNotify: {
-					defaultValue: true,
-					label: '开启更新通知',
-					attrs: { type: 'checkbox', title: '当有最新的版本时自动弹窗通知，默认开启' }
-				},
-				notToday: {
-					defaultValue: -1
-				},
-				ignoreVersions: {
-					defaultValue: [] as string[]
-				}
 			},
 			methods() {
 				return {
@@ -673,69 +774,9 @@ export const BackgroundProject = Project.create({
 						h('div', ['脚本更新链接：', h('a', { target: '_blank', href: updatePage }, [updatePage || '无'])])
 					])
 				);
-				console.log('versions', {
-					notToday: this.cfg.notToday,
-					ignoreVersions: this.cfg.ignoreVersions,
-					version: version
-				});
 			},
 			oncomplete() {
-				if (this.cfg.autoNotify && $.isInTopWindow()) {
-					if (this.cfg.notToday === -1 || this.cfg.notToday !== new Date().getDate()) {
-						const infos = $gm.getInfos();
-						if (infos) {
-							// 版本表达式验证
-							if (!!semver_valid(infos.script.version) === false) {
-								$message.error(`当前版本号 (${infos.script.version}) 不符合semver版本书写规范，请重新修改版本。`);
-								return;
-							}
-
-							// 避免阻挡用户操作，这里等页面运行一段时间后再进行更新提示
-							setTimeout(async () => {
-								const version = await this.methods.getLastVersion();
-								const last = version['last-version'];
-
-								if (
-									// 跳过主动忽略的版本
-									this.cfg.ignoreVersions.includes(last) === false &&
-									// 版本比较
-									semver_gt(last, infos.script.version)
-								) {
-									const updatePage = this.startConfig?.updatePage || '';
-									const modal = $modal.confirm({
-										maskCloseable: false,
-										width: 600,
-										content: $ui.notes([`检测到新版本发布 ${last} ：`, [...(version.notes || [])]]),
-										footer: h('div', [
-											h('button', { className: 'base-style-button-secondary', innerText: '跳过此版本' }, (btn) => {
-												btn.onclick = () => {
-													this.cfg.ignoreVersions = [...this.cfg.ignoreVersions, last];
-													modal?.remove();
-												};
-											}),
-											h('button', { className: 'base-style-button-secondary', innerText: '今日不再提示' }, (btn) => {
-												btn.onclick = () => {
-													this.cfg.notToday = new Date().getDate();
-													modal?.remove();
-												};
-											}),
-											h('button', { className: 'base-style-button', innerText: '前往更新' }, (btn) => {
-												btn.onclick = () => {
-													if (updatePage) {
-														window.open(updatePage, '_blank');
-														modal?.remove();
-													} else {
-														$message.error({ content: '无法前往更新页面，更新链接为空' });
-													}
-												};
-											})
-										])
-									});
-								}
-							}, 5 * 1000);
-						}
-					}
-				}
+				// 自动更新弹窗已禁用。用户可在此面板查看版本并手动打开更新链接。
 			}
 		}),
 		dev: new Script({
@@ -754,7 +795,6 @@ export const BackgroundProject = Project.create({
 					for (const script of devScripts) {
 						script.showPanel();
 					}
-					$message.info({ content: '检测到开发者工具已打开，已显示 开发者调试/请求记录 面板。', duration: 5 });
 				});
 			},
 			configs: {
@@ -801,7 +841,44 @@ export const BackgroundProject = Project.create({
 					});
 				});
 
-				panel.body.replaceChildren(h('div', { className: 'card' }, [h('hr'), injectBtn, showTabDataBtn]));
+				// 计算 store 本地存储中全部键值对的总体大小（键名 + 值的 JSON 序列化字节数）
+				const encoder = new TextEncoder();
+				let storeBytes = 0;
+				const keySizes: { key: string; bytes: number }[] = [];
+				for (const key of $store.list()) {
+					const bytes = encoder.encode(key).length + encoder.encode(JSON.stringify($store.get(key)) || '').length;
+					storeBytes += bytes;
+					keySizes.push({ key, bytes });
+				}
+				const formatBytes = (bytes: number) =>
+					bytes < 1024
+						? bytes + ' B'
+						: bytes < 1024 * 1024
+						? (bytes / 1024).toFixed(2) + ' KB'
+						: (bytes / 1024 / 1024).toFixed(2) + ' MB';
+				const storeSizeEl = h('div', { title: 'store 本地存储中全部键值对的字节数（键名 + 值的 JSON 序列化）' }, [
+					`Store 存储占用：${formatBytes(storeBytes)}（共 ${keySizes.length} 个键）`
+				]);
+
+				// 占用最高的键 Top5（排查大键拖慢 GM 写入的问题）
+				const topKeys = keySizes.sort((a, b) => b.bytes - a.bytes).slice(0, 5);
+				const topKeysEl = h('div', { style: { fontSize: '12px', marginTop: '4px' } }, [
+					h('div', { style: { color: '#888' } }, '占用最高的键 Top5：'),
+					...topKeys.map((item, index) =>
+						h(
+							'div',
+							{
+								title: item.key,
+								style: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }
+							},
+							`${index + 1}. ${item.key} — ${formatBytes(item.bytes)}`
+						)
+					)
+				]);
+
+				panel.body.replaceChildren(
+					h('div', { className: 'card' }, [h('hr'), injectBtn, showTabDataBtn, h('hr'), storeSizeEl, topKeysEl])
+				);
 			}
 		}),
 		appLoginHelper: new Script({
@@ -1191,14 +1268,15 @@ export const BackgroundProject = Project.create({
 					CXProject.scripts.autoRead,
 					ZHSProject.scripts['study-center'],
 					ZHSProject.scripts['work-center'],
-					[ICourseProject.scripts.dispatcher, ICourseProject.scripts.study],
+					ICourseProject.scripts['study-center'],
 					ICourseProject.scripts.work,
 					[ZJYProject.scripts.dispatcher, ZJYProject.scripts.study],
 					ZJYProject.scripts.work,
 					IcveMoocProject.scripts.study,
 					IcveMoocProject.scripts.work,
 					YKTProject.scripts.ai,
-					YKTProject.scripts.exam
+					YKTProject.scripts.exam,
+					YKTProject.scripts.yuketangExam
 				]
 					.map((m) => {
 						const url = window.location.href;
@@ -1234,11 +1312,24 @@ export const BackgroundProject = Project.create({
 
 type Console = Record<LogType, (...msg: any[]) => void>;
 
+/**
+ * 日志持久化（2 秒防抖合并写入）。
+ * $console 是全项目最高频的 GM 写入点（每条日志一次），逐条直写会反复触发
+ * GM_setValue 全量序列化导致卡顿；日志非关键数据，极端情况下丢失最近 2 秒可接受。
+ */
+let latestConsoleLogs: { type: LogType; content: string; time: number; stack: string }[] | undefined;
+const persistConsoleLogs = debounce(() => {
+	if (latestConsoleLogs) {
+		BackgroundProject.scripts.console.cfg.logs = latestConsoleLogs;
+	}
+}, 2000);
+
 /** 日志对象，存储日志并显示在日志面板 */
 export const $console: Console = new Proxy({} as Console, {
 	get(target, key) {
 		return (...msg: any[]) => {
-			let logs = BackgroundProject.scripts.console.cfg.logs;
+			// 防抖期间连续日志需基于工作数组累积（cfg 缓存值尚未更新，直接读会丢失中间日志）
+			let logs = latestConsoleLogs ?? BackgroundProject.scripts.console.cfg.logs;
 			if (logs.length > 50) {
 				logs = logs.slice(-50);
 			}
@@ -1261,7 +1352,8 @@ export const $console: Console = new Proxy({} as Console, {
 				stack: JSON.stringify([stack_str.split('\n')[0], ...(stacks || [])])
 			});
 
-			BackgroundProject.scripts.console.cfg.logs = logs;
+			latestConsoleLogs = logs;
+			persistConsoleLogs();
 		};
 	}
 });

@@ -4,6 +4,7 @@ import { CommonWorkOptions, playMedia } from '../utils';
 import { CommonProject } from './common';
 import { commonWork, createCommonAnswerer, updateDynamicResult } from '../utils/work';
 import { workNotes } from '../utils/configs';
+import { confirmScriptNavigation } from '../utils/navigation';
 
 const workPages: [string, string][] = [
 	['作业页面', 'quiz'],
@@ -219,6 +220,7 @@ async function navigateToNext() {
 		// 使用规范化文本比较
 		const btnText = nextButton.innerText.replace(/\s/g, '').toLowerCase();
 		if (btnText.includes('下一页') || btnText.includes('next')) {
+			if (!confirmScriptNavigation('进入优学院下一页')) return false;
 			$message.success({ content: '下一页', duration: 0 });
 			nextButton.click();
 			await $.sleep(1000); // 增加页面加载等待时间

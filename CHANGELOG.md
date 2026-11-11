@@ -1,5 +1,101 @@
 # Changelog
 
+## [5.4.0](https://github.com/ocsjs/ocsjs/compare/5.3.1...5.4.0) (2026-11-08)
+
+
+### ✨ 新功能
+
+* 新增雨课堂自动考试功能 ([dccaaaa](https://github.com/ocsjs/ocsjs/commit/dccaaaa86d0585b6d6fa48897cc55529be7877ef))
+
+
+### 🐛 问题修复
+
+* 修复智慧树AI教学中心随堂练习无法运行的问题 ([578e95c](https://github.com/ocsjs/ocsjs/commit/578e95c94b71c22329bcae729005b8a34e05f9c0))
+
+
+### ⚡ 优化改进
+
+* 优化更新弹窗的按钮间隔 ([dc7367a](https://github.com/ocsjs/ocsjs/commit/dc7367a7c241105ff6392368d8bbd2c93bf68cf3))
+* 合并中国大学新旧两个配置界面。 增加视频、倍速配置的实时应用 ([1e57dd3](https://github.com/ocsjs/ocsjs/commit/1e57dd37daa679e6fecc298941252835a93c84d2))
+* 增加脚本识别类型、 优化主脚本的脚本配置提示 ([1e6f2bd](https://github.com/ocsjs/ocsjs/commit/1e6f2bd4fb560bdee39adc738f0a0daa7dfa23b7))
+
+
+### 📝 文档
+
+* README logo 改为仓库内相对路径，修复 GitHub camo 代理裂图问题 ([840741d](https://github.com/ocsjs/ocsjs/commit/840741d496335283b24df0a44dbf8001b63a1fb0))
+
+## [5.3.1](https://github.com/ocsjs/ocsjs/compare/5.3.0...5.3.1) (2026-11-05)
+
+
+### 🐛 问题修复
+
+* 修复预检查未生效的BUG ([38c0061](https://github.com/ocsjs/ocsjs/commit/38c0061d2fb0e9890484d62d832bec440e84ddbd))
+
+## [5.3.0](https://github.com/ocsjs/ocsjs/compare/5.2.7...5.3.0) (2026-11-05)
+
+
+### ✨ 新功能
+
+* 增加智慧树-AI教学中心-随堂测验自动答题功能、以及公式题优化 ([1e12ac0](https://github.com/ocsjs/ocsjs/commit/1e12ac0e56bbe5d9966395cd902503438b77c6fe))
+
+
+### 🐛 问题修复
+
+* 修复智慧树AI教学中心-搜题出现无意义的图片 ([079da15](https://github.com/ocsjs/ocsjs/commit/079da157f91d11157d5510c014206bc1a00b8565))
+* 修复超星智能跳转模式无法生效的问题 ([73d81c6](https://github.com/ocsjs/ocsjs/commit/73d81c63015ee2c25a8cf0c4df5878b2592c1b51))
+
+
+### ⚡ 优化改进
+
+* 将 $msg api 更名为 $msgwc ([d0bd342](https://github.com/ocsjs/ocsjs/commit/d0bd34294f4b525bbde5e1c98f26db1d75449c0b))
+* 将 $msg api 更名为 $msgwc ([769a3fc](https://github.com/ocsjs/ocsjs/commit/769a3fce363fd54d2d40c74c26bc88594eedfa53))
+
+## [5.2.7](https://github.com/ocsjs/ocsjs/compare/5.2.6...5.2.7) (2026-11-02)
+
+
+### 🐛 问题修复
+
+* 修复超星答题时解密时序错误导致出现乱码字的问题 ([5f02865](https://github.com/ocsjs/ocsjs/commit/5f02865aa495418ca6b144938c67497d515e0d12))
+* 修复部分环境下中国大学MOOC无法运行的问题 ([00710f1](https://github.com/ocsjs/ocsjs/commit/00710f148ae21ee388549f4f55681d9bd2a47479))
+
+
+### ⚡ 优化改进
+
+* 适配智慧树校内翻转课的填空题、问答题等 ([e27255d](https://github.com/ocsjs/ocsjs/commit/e27255d66946b8d31355c7bd2e62b605e2062b15))
+
+## [5.2.6](https://github.com/ocsjs/ocsjs/compare/5.2.5...5.2.6) (2026-11-01)
+
+
+### 🐛 问题修复
+
+* 修复超星第一题繁体乱码，字体解密改为预载+每次搜题前守卫+增量解密 ([fdab3c9](https://github.com/ocsjs/ocsjs/commit/fdab3c9e5fcab5b40053a54d37ad93b81bb5d427))
+* 紧急修复easy-us更新导致的脚本卡死问题 ([10eb0bd](https://github.com/ocsjs/ocsjs/commit/10eb0bdc4d765ae339fab92e12b84960f5699fe2))
+
+## [5.2.5](https://github.com/ocsjs/ocsjs/compare/5.2.4...5.2.5) (2026-10-31)
+
+
+### 🐛 问题修复
+
+* 修复 GitHub Actions 构建报错（eslint 规则与 prettier 格式） ([812bb3e](https://github.com/ocsjs/ocsjs/commit/812bb3e330da59db501d6aa0bc52e6eff378bcf5))
+* 修复 release-please changelog 缺少 feat/fix 等分段 ([0140810](https://github.com/ocsjs/ocsjs/commit/0140810c2e41455c6ef52b706cf0461f0fa7fcef))
+* 修复雨课堂仅公式题目下为空的问题、移除开发者工具提示 ([57204be](https://github.com/ocsjs/ocsjs/commit/57204be238339161d071e900051758322ade5117))
+
+
+### ⚡ 优化改进
+
+* 字体特征表持久化缓存迁移至 CacheStorage ([3ad329a](https://github.com/ocsjs/ocsjs/commit/3ad329ab87dd7819bb0f4677a674a43fa638637e))
+* 题库缓存与日志的 GM 存储写入优化，开发者面板增加存储占用排查 ([a894a32](https://github.com/ocsjs/ocsjs/commit/a894a329da92010c3032883f7774cffd057a25fa))
+
+## [5.2.4](https://github.com/ocsjs/ocsjs/compare/5.2.3...5.2.4) (2026-10-30)
+
+
+* waitFor 超时改为抛出异常，审查并适配全部调用点 ([adedede](https://github.com/ocsjs/ocsjs/commit/adededeb54fb056b5d4b6a0f85d0ee9836205598))
+* 优化超星自动下一章的算法 ([8995a79](https://github.com/ocsjs/ocsjs/commit/8995a7940c98335b562d6679b07915fde98d423d))
+* 优化题库在electron中连接失败等错误显示 ([29b645c](https://github.com/ocsjs/ocsjs/commit/29b645c144fa50e41360d273292f3613f4cb3df0))
+* 修复超星字体解密时序问题，特征表增加持久化缓存与条件请求校验 ([feee3a9](https://github.com/ocsjs/ocsjs/commit/feee3a98cbdf352969a343430f05e8b17b3c8298))
+* 适配最新智慧树AI教学中心视频学习 ([025d006](https://github.com/ocsjs/ocsjs/commit/025d006367117434d3df85dfbc281cb620e1900d))
+* 适配雨课堂最新的latex公式题目 ([aace5ec](https://github.com/ocsjs/ocsjs/commit/aace5ecfce3c396a2f4f6dfd3aa3c6bd2307e64c))
+
 ## [5.2.3](https://github.com/ocsjs/ocsjs/compare/5.2.2...5.2.3) (2026-10-23)
 
 

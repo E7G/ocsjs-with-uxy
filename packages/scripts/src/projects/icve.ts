@@ -10,6 +10,7 @@ import {
 import { playbackRate, restudy, volume } from '../utils/configs';
 import { CommonWorkOptions, playMedia } from '../utils';
 import { createSteps } from '../utils/ui';
+import { confirmScriptNavigation } from '../utils/navigation';
 import { CommonProject } from './common';
 
 import { $console, BackgroundProject } from './background';
@@ -195,7 +196,7 @@ export const IcveMoocProject = Project.create({
 								});
 								return;
 							} else {
-								window.location.href = this.cfg.currentCourseUrlList[index + 1];
+								if (confirmScriptNavigation('进入下一门职教云课程')) window.location.href = this.cfg.currentCourseUrlList[index + 1];
 							}
 						}
 					}
@@ -393,8 +394,10 @@ export const IcveMoocProject = Project.create({
 						}
 
 						if (nextEl) {
-							nextEl.click();
-							scrollToJob();
+							if (confirmScriptNavigation('进入下一章节任务点')) {
+								nextEl.click();
+								scrollToJob();
+							}
 						} else {
 							$modal.alert({ content: '全部任务已完成' });
 							CommonProject.scripts.settings.methods.notificationBySetting('全部任务点已完成！', {
@@ -686,7 +689,7 @@ export const IcveMoocProject = Project.create({
 					$msg_and_log('info', '即将进入下一章节');
 					await $.sleep(3000);
 					if (id !== study_id) return;
-					next.click();
+					if (confirmScriptNavigation('进入下一章节')) next.click();
 				};
 
 				const getNext = () => {
