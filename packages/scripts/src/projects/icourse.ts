@@ -17,7 +17,6 @@ import { playbackRate, volume } from '../utils/configs';
 import { readSpeed, discussionStrategy, enableChapterTest, icourseStudyCenterConfigs } from '../utils/icourse.configs';
 import { migrateIcourseStudyConfigs, icourseStudyNamespace } from '../utils/config-migrate';
 import { $render } from '../utils/render';
-import { confirmScriptNavigation } from '../utils/navigation';
 
 const $msg_and_log = (type: 'info' | 'warn' | 'error', msg: string) => {
 	$message[type](msg);
@@ -272,8 +271,7 @@ export const ICourseProject = Project.create({
 						study();
 
 						async function gotoNextJob() {
-							if (!confirmScriptNavigation('进入中国大学MOOC下一章节或任务点')) return;
-							const list = await next();
+														const list = await next();
 							for (const item of list) {
 								const el = typeof item === 'function' ? item() : item;
 								if (el) {
@@ -505,8 +503,7 @@ export const ICourseProject = Project.create({
 						};
 
 						async function gotoNextJob() {
-							if (!confirmScriptNavigation('进入中国大学MOOC下一章节或任务点')) return;
-							const list = await next();
+														const list = await next();
 							for (const item of list) {
 								const el = typeof item === 'function' ? item() : item;
 								if (el) {
@@ -690,7 +687,7 @@ export const ICourseProject = Project.create({
 				BackgroundProject.scripts.render.methods.pin(this);
 				$message.info('检测到中国大学MOOC空白页面，即将重定向修复...');
 				setTimeout(() => {
-					if (confirmScriptNavigation('返回中国大学MOOC首页')) location.href = 'https://www.icourse163.org/';
+					location.href = 'https://www.icourse163.org/';
 				}, 3000);
 			}
 		})
