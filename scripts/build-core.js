@@ -3,7 +3,10 @@
 const { series } = require('gulp');
 const del = require('del');
 const util = require('util');
-const { version } = require('../package.json');
+const { scriptVersion } = require('./fork-version');
+const repoURL = 'https://github.com/E7G/ocsjs-with-uxy';
+// GitHub Actions builds userscripts and publishes them as Release assets.
+const distributionBase = 'https://github.com/E7G/ocsjs-with-uxy/releases/latest/download';
 /** @type {(...args: any[])=> Promise<void>} */
 const execOut = util.promisify(require('./utils').execOut);
 const { createUserScript, createMetaFile } = require('../packages/utils');
@@ -24,6 +27,7 @@ function cleanOutput() {
 
 async function testResolver() {
 	await execOut('tsx ../tests/resolver.test.ts');
+	await execOut('tsx ../tests/fork-customization.test.ts');
 }
 
 async function buildPackages() {
@@ -48,8 +52,8 @@ function loadDistOcs() {
 
 /** @return {import('../packages/utils').CreateOptions} */
 function createOptions(ocs) {
-	const { CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject } = ocs;
-	const projectList = [CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject]
+	const { CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject, ULearningProject } = ocs;
+	const projectList = [CXProject, ZHSProject, ZJYProject, IcveMoocProject, ICourseProject, YKTProject, ULearningProject]
 		.map((s) => `【${s.name}】`)
 		.join(' ');
 
@@ -74,19 +78,19 @@ function createOptions(ocs) {
 			gap: '\t'.repeat(4)
 		},
 		metadata: {
-			name: 'OCS 网课助手',
-			version: version,
-			description: [
-				'OCS(online-course-script) 网课助手，官网 https://docs.ocsjs.com ，专注于帮助大学生从网课中释放出来',
-				'让自己的时间把握在自己的手中，拥有人性化的操作页面，流畅的步骤提示，支持 ',
-				projectList,
-				'等网课的学习，作业。具体的功能请查看脚本悬浮窗中的教程页面。'
-			].join(' '),
-			author: 'enncy',
+			name: 'OCS-with-uxy 网课助手',
+			version: scriptVersion,
+			description: ['OCS-with-uxy 是 E7G 维护的 OCS 5.x 定制分支，保留上游 OCS 功能并扩展优学院、雨课堂及学习通支持。', '支持平台：', projectList, '。项目与问题反馈：' + repoURL].join(' '),
+			author: 'E7G (fork; original OCS by enncy)',
+			contributor: 'enncy and OCS contributors',
 			license: 'MIT',
-			namespace: 'https://enncy.cn',
-			homepage: 'https://docs.ocsjs.com',
-			source: 'https://github.com/ocsjs/ocsjs',
+			namespace: repoURL,
+			homepage: repoURL,
+			homepageURL: repoURL,
+			source: repoURL,
+			supportURL: repoURL + '/issues',
+			updateURL: distributionBase + '/ocs.meta.js',
+			downloadURL: distributionBase + '/ocs.user.js',
 			icon: 'https://cdn.ocsjs.com/logo.png',
 			connect: [
 				'enncy.cn',
@@ -139,6 +143,9 @@ async function createDevUserScript() {
 	devOpts.parseRequire = false;
 	devOpts.parseResource = false;
 	devOpts.metadata.name = devOpts.metadata.name + '(dev)';
+	// Developer version uses local file:// dependencies; do not publish an auto-update URL.
+	delete devOpts.metadata.updateURL;
+	delete devOpts.metadata.downloadURL;
 	devOpts.metadata.require = ['file:///' + path.join(distResolvedPath, 'index.js')];
 	devOpts.metadata.resource = [`STYLE file:///${CSS_PATH}`];
 	devOpts.entry = path.join(__dirname, '../packages/scripts/entry.dev.js');
@@ -178,9 +185,14 @@ async function createUserJs() {
 	commonOpts.metadata.connect = connect;
 	commonOpts.entry = path.join(__dirname, '../packages/scripts/entry.common.js');
 	commonOpts.dist = path.join(distResolvedPath, 'ocs.common.user.js');
+	commonOpts.metadata.updateURL = distributionBase + '/ocs.common.meta.js';
+	commonOpts.metadata.downloadURL = distributionBase + '/ocs.common.user.js';
 
 	console.log('createUserScript: ', commonOpts.metadata.name, commonOpts.dist);
 	await createUserScript(commonOpts);
+	await createMetaFile({ dist: commonOpts.dist, metaDist: path.join(distResolvedPath, 'ocs.common.meta.js') });
+	// Fail the build if a published userscript has stale or inconsistent metadata.
+	require('./verify-fork-metadata').verifyForkMetadata(distResolvedPath);
 }
 
 exports.createDevUserScript = createDevUserScript;
