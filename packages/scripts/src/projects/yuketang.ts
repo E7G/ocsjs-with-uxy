@@ -333,7 +333,10 @@ export const YKTProject = Project.create({
 		}),
 		exam: new Script({
 			name: '自动考试',
-			matches: [['考试界面', 'examination.xuetangx.com/exam/']],
+			matches: [
+				['考试界面', 'examination.xuetangx.com/exam/'],
+				['长江雨课堂考试界面', 'changjiang-exam.yuketang.cn/exam']
+			],
 			namespace: 'yuketang.study.exam',
 			configs: {
 				notes: workNotes
@@ -1364,7 +1367,9 @@ async function ai_watch(options: { volume: number; playbackRate: number }) {
  */
 function examination(opts: CommonWorkOptions) {
 	$message.info(`开始考试`);
-	CommonProject.scripts.workResults.methods.init();
+	CommonProject.scripts.workResults.methods.init({
+		questionPositionSyncHandlerType: 'yuketang_exam'
+	});
 
 	const redundanceWords = opts.redundanceWordsText.split('\n').filter(Boolean);
 	const titleTransform = (titles: (HTMLElement | undefined)[]) =>
@@ -1385,8 +1390,14 @@ function examination(opts: CommonWorkOptions) {
 	const worker = new OCSWorker({
 		root: '.exam-main--content .subject-item',
 		elements: {
-			title: '.clearfix.exam-font .custom_ueditor_cn_body',
-			options: 'ul.list-unstyled li .custom_ueditor_cn_body',
+			title: ['h3', 'h4', 'h5', 'h6'].map((h) => `${h.trim()}.clearfix.exam-font`).join(','),
+			options: [
+				// 单选题
+				'ul.list-unstyled li',
+				// 判断题
+				'ul.list-inline.list-unstyled-radio li',
+				'ul.list-unstyled.list-unstyled-checkbox li'
+			].join(', '),
 			textareas: (root) => {
 				// 主观题为 UEditor 富文本编辑器（iframe 作为填充目标）；
 				// 填空题为横线输入框（blank-item-dynamic / placeholder="输入答案"）；简答为原生 textarea
@@ -1434,8 +1445,9 @@ function examination(opts: CommonWorkOptions) {
 			if (type && (type === 'multiple' || type === 'single')) {
 				const resolver = createDefaultQuestionResolver(ctx, (o) => extractTextWithImages(o).text)[type];
 				return await resolver(searchInfos, elements.options as HTMLElement[], async (type, answer, option) => {
-					if (!option?.querySelector('.el-icon-check')) {
-						option.click();
+					const label = option.querySelector('label');
+					if (!label?.classList.contains('is-checked') && !option.querySelector('.el-icon-check')) {
+						label?.click();
 						await $.sleep(500);
 					}
 				});
@@ -1447,7 +1459,8 @@ function examination(opts: CommonWorkOptions) {
 				const result = resolveJudgement(answersGroup, optionTexts);
 				if (result.finish && result.option) {
 					const index = optionTexts.indexOf(result.option);
-					ctx.elements.options[index]?.click();
+					const label = ctx.elements.options[index].querySelector('label');
+					label?.click();
 					return { finish: true };
 				}
 				return { finish: false };
