@@ -13,6 +13,7 @@ import {
 } from './interface';
 import { createDefaultQuestionResolver } from './question.resolver';
 import { defaultWorkTypeResolver } from './utils';
+import { getSearchConcurrency } from './search-concurrency';
 import { AnswerWrapperHandlerConfig } from '../answer-wrapper';
 
 /**
@@ -251,6 +252,7 @@ export class OCSWorker<E extends RawElements = RawElements> extends CommonEventE
 		};
 
 		const waitForRequested = async (result: WorkResult<E>) => {
+			if (result.requested) return;
 			return new Promise<void>((resolve, reject) => {
 				const interval = setInterval(() => {
 					if (result?.requested === true) {
@@ -352,59 +354,22 @@ export class OCSWorker<E extends RawElements = RawElements> extends CommonEventE
 		 */
 		/** 多线程搜题 */
 		const requestThreadHandler = async () => {
-			/** 线程锁 */
-			const locks: number[] = [];
-
-			const waitForLock = () => {
-				return new Promise<number>((resolve, reject) => {
-					const interval = setInterval(() => {
-						if (locks.length > 0) {
-							const lock = locks.shift();
-							if (lock) {
-								resolve(lock);
-								clearInterval(interval);
-								clearTimeout(timeout);
-							}
-						}
-					}, 100);
-
-					const timeout = setTimeout(() => {
-						clearInterval(interval);
-						reject(new Error('获取线程锁超时！'));
-					}, 3 * 60 * 1000);
-				});
-			};
-
-			const requestThreads: Function[] = [];
-			for (let index = 0; index < results.length; index++) {
-				requestThreads.push(() => requestThread(index));
-			}
-
-			for (let index = 0; index < (this.opts.thread || 1); index++) {
-				locks.push(index + 1);
-			}
-			let requestFinished = 0;
-
-			const promises: Function[] = [];
-			for (let index = 0; index < (this.opts.thread || 1); index++) {
-				promises.push(async () => {
+			const concurrency = getSearchConcurrency(this.opts.thread, results.length);
+			let next = 0;
+			const run = async () => {
+				while (!this.isClose && next < results.length) {
+					const index = next++;
 					try {
-						while (requestFinished < results.length && requestThreads.length > 0 && this.isClose === false) {
-							const thread = requestThreads.shift();
-							if (thread) {
-								const lock = await waitForLock();
-								await thread();
-								requestFinished++;
-								locks.push(lock);
-							}
-						}
+						await requestThread(index);
 					} catch (err) {
 						console.error(err);
+						results[index].searching = false;
+						results[index].requested = true;
+						results[index].error = String(err);
 					}
-				});
-			}
-
-			await Promise.all(promises.map((f) => f()));
+				}
+			};
+			await Promise.all(Array.from({ length: concurrency }, () => run()));
 		};
 
 		/** 答题线程 */

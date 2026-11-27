@@ -697,7 +697,7 @@ function waitForQuestion() {
 function workAndExam(
 	rp: RemotePage,
 	type: 'chapter-test' | 'work' | 'exam',
-	{ answererWrappers, redundanceWordsText, upload, stopSecondWhenFinish, answerSeparators }: CommonWorkOptions
+	{ answererWrappers, redundanceWordsText, upload, stopSecondWhenFinish, answerSeparators, thread }: CommonWorkOptions
 ) {
 	CommonProject.scripts.workResults.methods.init({
 		questionPositionSyncHandlerType: 'icourse'
@@ -736,7 +736,7 @@ function workAndExam(
 			title: type === 'exam' ? '[class*=questionInfo]' : '.j-title .j-richTxt',
 			options: type === 'exam' ? '[class*=index-module__optionBody]' : '.choices li,.inputArea'
 		},
-		thread: 1,
+		thread: thread ?? 1,
 		answerSeparators: answerSeparators.split(',').map((s) => s.trim()),
 		/** 默认搜题方法构造器 */
 		answerer: createCommonAnswerer({
@@ -866,7 +866,7 @@ function workAndExam(
 
 function chapter_v2(
 	rp: RemotePage,
-	{ answererWrappers, redundanceWordsText, upload, stopSecondWhenFinish, answerSeparators }: CommonWorkOptions
+	{ answererWrappers, redundanceWordsText, upload, stopSecondWhenFinish, answerSeparators, thread }: CommonWorkOptions
 ) {
 	const titleTransform = (titles: (HTMLElement | undefined)[]): { text: string; images: string[] } => {
 		const images: string[] = [];
@@ -900,7 +900,7 @@ function chapter_v2(
 			title: '.lesson-quiz-question-rich-text',
 			options: 'label.cursor-pointer'
 		},
-		thread: 1,
+		thread: thread ?? 1,
 		answerSeparators: answerSeparators.split(',').map((s) => s.trim()),
 		/** 默认搜题方法构造器 */
 		answerer: createCommonAnswerer({

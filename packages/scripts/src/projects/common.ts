@@ -179,7 +179,10 @@ const state = {
 					?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			},
 			uxy: (index: number) => {
-				document.querySelectorAll<HTMLElement>('.question-item').item(index)?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+				document
+					.querySelectorAll<HTMLElement>('.question-item')
+					.item(index)
+					?.scrollIntoView({ behavior: 'smooth', block: 'center' });
 			},
 			yuketang: (index: number) => {
 				getYuketangExamQuestionRoots()[index]?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -252,20 +255,26 @@ export const CommonProject = Project.create({
 				},
 				answererWrappers: {
 					separator: '自动答题设置',
-					defaultValue: [{
-						name: '自定义题库local',
-						url: 'http://localhost:8060/adapter-service/search?use=local',
-						method: 'post',
-						type: 'GM_xmlhttpRequest',
-						contentType: 'json',
-						headers: {},
-						data: {
-							question: '$' + '{title}',
-							options: { handler: "return (env) => env.options?.split('\\n')" },
-							type: { handler: "return (env) => env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined" }
-						},
-						handler: "return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
-					}] as AnswererWrapper[]
+					defaultValue: [
+						{
+							name: '自定义题库local',
+							url: 'http://localhost:8060/adapter-service/search?use=local',
+							method: 'post',
+							type: 'GM_xmlhttpRequest',
+							contentType: 'json',
+							headers: {},
+							data: {
+								question: '$' + '{title}',
+								options: { handler: "return (env) => env.options?.split('\\n')" },
+								type: {
+									handler:
+										"return (env) => env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined"
+								}
+							},
+							handler:
+								"return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
+						}
+					] as AnswererWrapper[]
 				},
 				/**
 				 * 禁用的题库
@@ -738,7 +747,8 @@ export const CommonProject = Project.create({
 																		" return (env)=> env.type === 'single' ? 0 : env.type === 'multiple' ? 1 : env.type === 'completion' ? 2 : env.type === 'judgement' ? 3 : undefined"
 																}
 															},
-															handler: "return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
+															handler:
+																"return (res) => { const answers = res.answer?.allAnswer?.filter(a => Array.isArray(a)) || []; return answers.map(i => [res.question, i.join('#')]); }"
 														});
 													} else {
 														const contents = value
@@ -961,11 +971,10 @@ export const CommonProject = Project.create({
 						type: 'number',
 						min: 1,
 						step: 1,
-						max: 3,
 						title:
-							'同一时间内答题线程工作的数量（例子：三个线程则代表一秒内同时搜索三道题），过多可能导致题库服务器压力过大，请适当调低。'
+							'同一时间并发搜题的数量，无固定上限，实际并发不超过当前题目数量。线程过多可能导致题库限流，请适当调低。'
 					},
-					defaultValue: 1
+					defaultValue: 32
 				},
 				imageOptimize: {
 					showIf: 'common.settings.advancedSettings',
@@ -1012,12 +1021,12 @@ export const CommonProject = Project.create({
 					label: '搜题间隔（秒）',
 					attrs: {
 						type: 'number',
-						min: 1,
+						min: 0,
 						step: 1,
 						max: 60,
-						title: '每道题的搜题间隔时间，不建议太低，避免增加服务器压力。'
+						title: '本机题库可设为 0，无额外等待；远程或混合题库设为 0 时使用 3 秒保护间隔。'
 					},
-					defaultValue: 3
+					defaultValue: 0
 				},
 				answerSeparators: {
 					showIf: 'common.settings.advancedSettings',

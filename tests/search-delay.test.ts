@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { getSearchDelayMs } from '../packages/scripts/src/utils/search-delay';
+const local = [{ url: 'http://localhost:8060/adapter-service/search?use=local' }];
+const remote = [{ url: 'https://example.com/search' }];
+assert.equal(getSearchDelayMs(local, 0), 0);
+assert.equal(getSearchDelayMs(local), 0);
+assert.equal(getSearchDelayMs(local, 2), 2000);
+assert.equal(getSearchDelayMs(remote, 0), 3000);
+assert.equal(getSearchDelayMs([...local, ...remote], 0), 3000);
+assert.equal(getSearchDelayMs([{ url: 'http://127.0.0.1:8060/' }], 0), 0);
+assert.equal(getSearchDelayMs([{ url: 'http://[::1]:8060/' }], 0), 0);
+assert.equal(getSearchDelayMs([{ url: 'http://localhost.example.com/' }], 0), 3000);
+console.log('Search delay tests: PASS (8 cases)');

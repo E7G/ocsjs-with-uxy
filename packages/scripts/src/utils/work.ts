@@ -13,6 +13,7 @@ import { CommonEvents, CommonProject } from '../projects/common';
 import { $console, BackgroundProject } from '../projects/background';
 import { CommonWorkOptions } from '.';
 import { createIframeControlSession } from './iframe-control-bar';
+import { getSearchDelayMs } from './search-delay';
 import {
 	buildAnswererEnv,
 	createAnswererWrappersSignature,
@@ -614,7 +615,8 @@ export function createCommonAnswerer(options: {
 		const titleImages = titleResult.images;
 
 		return await BackgroundProject.scripts.data.methods.searchAnswerInCaches(title, async () => {
-			await $.sleep((options.period ?? 3) * 1000);
+			const delay = getSearchDelayMs(options.answererWrappers, options.period);
+			if (delay > 0) await $.sleep(delay);
 			const optResult = normalize(
 				options.optionsTransform
 					? options.optionsTransform(elements, ctx)

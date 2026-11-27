@@ -679,7 +679,7 @@ export const CXProject = Project.create({
 					commonWork({
 						mount_script: this,
 						// 因为超星是每个题目一个页面，这里加快开始速度，避免等待，默认5秒，这里加快为默认3秒间隔
-						start_delay_seconds: workOptions.period,
+						start_delay_seconds: Math.max(3, workOptions.period),
 						workerProvider: (opts) => workOrExam(isExam ? 'exam' : 'work', { ...opts, preview_mode: false, thread: 1 })
 					});
 					return;
