@@ -28,6 +28,7 @@ function cleanOutput() {
 async function testResolver() {
 	await execOut('tsx ../tests/resolver.test.ts');
 	await execOut('tsx ../tests/fork-customization.test.ts');
+	await execOut('tsx ../tests/choice-selection.test.ts');
 }
 
 async function buildPackages() {

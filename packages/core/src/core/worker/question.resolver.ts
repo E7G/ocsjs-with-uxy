@@ -1,4 +1,5 @@
 import { QuestionResolver, WorkContext } from './interface';
+import { applyChoiceSelection } from './choice-selection';
 import { resolveSingle, resolveMultiple, resolveJudgement, resolveCompletion, isJudgementOptions } from './resolvers';
 
 /** 默认答案题目处理器 */
@@ -27,8 +28,15 @@ export function createDefaultQuestionResolver<E>(
 				const result = resolveJudgement(answerGroups, optionTexts);
 				if (result.finish && result.option !== undefined) {
 					const index = optionTexts.indexOf(result.option);
-					const opt = index !== -1 ? options[index] : options[0];
-					await handler('judgement', result.option, opt, ctx);
+					if (index === -1) return { ...result, finish: false, applyFailed: true };
+					const opt = options[index];
+					if (
+						!(await applyChoiceSelection('judgement', options, [opt], (target) =>
+							handler('judgement', result.option!, target, ctx)
+						))
+					) {
+						return { ...result, finish: false, applyFailed: true };
+					}
 				}
 				return result;
 			}
@@ -39,8 +47,15 @@ export function createDefaultQuestionResolver<E>(
 
 			if (result.finish && result.option !== undefined) {
 				const index = optionTexts.indexOf(result.option);
-				const opt = index !== -1 ? options[index] : options[0];
-				await handler('single', result.option, opt, ctx);
+				if (index === -1) return { ...result, finish: false, applyFailed: true };
+				const opt = options[index];
+				if (
+					!(await applyChoiceSelection('single', options, [opt], (target) =>
+						handler('single', result.option!, target, ctx)
+					))
+				) {
+					return { ...result, finish: false, applyFailed: true };
+				}
 			}
 
 			return result;
@@ -60,10 +75,14 @@ export function createDefaultQuestionResolver<E>(
 			const resolvedOptions = result.finish ? result.options ?? result.plainOptions : undefined;
 
 			if (result.finish && resolvedOptions) {
-				for (const optText of resolvedOptions) {
-					const index = optionTexts.indexOf(optText);
-					const opt = index !== -1 ? options[index] : options[0];
-					await handler('multiple', optText, opt, ctx);
+				const targets = resolvedOptions.map((text) => options[optionTexts.indexOf(text)]).filter(Boolean);
+				if (
+					targets.length !== resolvedOptions.length ||
+					!(await applyChoiceSelection('multiple', options, targets, (target) =>
+						handler('multiple', optionTexts[options.indexOf(target)], target, ctx)
+					))
+				) {
+					return { ...result, finish: false, applyFailed: true };
 				}
 			}
 
@@ -82,8 +101,15 @@ export function createDefaultQuestionResolver<E>(
 
 			if (result.finish && result.option !== undefined) {
 				const index = optionTexts.indexOf(result.option);
-				const opt = index !== -1 ? options[index] : options[0];
-				await handler('judgement', result.option, opt, ctx);
+				if (index === -1) return { ...result, finish: false, applyFailed: true };
+				const opt = options[index];
+				if (
+					!(await applyChoiceSelection('judgement', options, [opt], (target) =>
+						handler('judgement', result.option!, target, ctx)
+					))
+				) {
+					return { ...result, finish: false, applyFailed: true };
+				}
 			}
 
 			return result;
@@ -99,6 +125,16 @@ export function createDefaultQuestionResolver<E>(
 			const result = resolveCompletion(answerGroups, options.length, ctx.answerSeparators);
 
 			if (result.finish && result.answers) {
+				if (result.answers.length !== options.length || result.answers.some((answer) => !answer.trim())) {
+					return { ...result, finish: false, applyFailed: true };
+				}
+				const locked = options.some((option) => {
+					const control = option.matches('textarea,input:not([type]),input[type="text"]')
+						? (option as HTMLInputElement | HTMLTextAreaElement)
+						: option.querySelector<HTMLInputElement | HTMLTextAreaElement>('textarea,input[type="text"]');
+					return control?.disabled || control?.readOnly;
+				});
+				if (locked) return { ...result, finish: false, applyFailed: true };
 				for (let i = 0; i < result.answers.length; i++) {
 					await handler('completion', result.answers[i], options[i], ctx);
 				}

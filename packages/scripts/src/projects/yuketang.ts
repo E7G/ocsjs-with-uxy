@@ -6,6 +6,7 @@ import {
 	defaultWorkTypeResolver,
 	WorkResult,
 	resolveJudgement,
+	applyChoiceSelection,
 	QuestionTypes
 } from '@ocsjs/core';
 import { $msgwc, playMedia, CommonWorkOptions } from '../utils';
@@ -1459,9 +1460,17 @@ function examination(opts: CommonWorkOptions) {
 				const result = resolveJudgement(answersGroup, optionTexts);
 				if (result.finish && result.option) {
 					const index = optionTexts.indexOf(result.option);
-					const label = ctx.elements.options[index].querySelector('label');
-					label?.click();
-					return { finish: true };
+					const options = elements.options as HTMLElement[];
+					const target = options[index];
+					if (!target) return { finish: false };
+					const finish = await applyChoiceSelection('judgement', options, [target], async (option) => {
+						const label = option.querySelector('label');
+						if (label) {
+							label.click();
+							await $.sleep(500);
+						}
+					});
+					return { finish };
 				}
 				return { finish: false };
 			} else if (type === 'completion') {

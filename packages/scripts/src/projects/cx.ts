@@ -5,6 +5,11 @@ import {
 	$,
 	StringUtils,
 	createDefaultQuestionResolver,
+	applyChoiceSelection,
+	getChoiceSelected,
+	planCompoundAnswer,
+	replaceSelectAnswer,
+	replaceTextAnswer,
 	DefaultWork,
 	splitAnswer,
 	domSearch,
@@ -1274,10 +1279,11 @@ function workOrExam(
 							const text = option?.querySelector('textarea');
 							const textareaFrame = option?.querySelector('iframe');
 							if (text) {
-								text.value = answer;
+								replaceTextAnswer(text, answer);
 							}
 							if (textareaFrame?.contentDocument) {
 								textareaFrame.contentDocument.body.innerHTML = answer;
+								textareaFrame.contentDocument.body.dispatchEvent(new Event('input', { bubbles: true }));
 							}
 							if (option?.parentElement?.parentElement) {
 								/** 如果存在保存按钮则点击 */
@@ -1289,39 +1295,31 @@ function workOrExam(
 				);
 			}
 			// 连线题自定义处理
-			else if (type && type === 'line') {
+			else if (type === 'line') {
 				for (const answers of searchInfos.map((info) => info.results.map((res) => res.answer))) {
-					let ans = answers;
-					if (ans.length === 1) {
-						ans = splitAnswer(ans[0]);
+					const ans = answers.length === 1 ? splitAnswer(answers[0], ctx.answerSeparators) : answers;
+					const targets = planCompoundAnswer(
+						ans,
+						elements.lineSelectBox.map((box) => Array.from(box.querySelectorAll<HTMLElement>('li[data]'))),
+						(item) => item.getAttribute('data')
+					);
+					const links = targets?.map((item) => item.querySelector<HTMLElement>('a'));
+					if (!links?.length || links.some((link) => !link)) continue;
+					for (const link of links) {
+						link!.click();
+						await $.sleep(200);
 					}
-					if (
-						ans.filter(Boolean).length !== 0 &&
-						elements.lineAnswerInput &&
-						ans.filter(Boolean).length === elements.lineSelectBox.length
-					) {
-						//  选择答案
-						for (let index = 0; index < elements.lineSelectBox.length; index++) {
-							const box = elements.lineSelectBox[index];
-							if (ans[index]) {
-								$el(`li[data=${ans[index]}] a`, box)?.click();
-								await $.sleep(200);
-							}
-						}
-
-						return { finish: true };
-					}
+					return { finish: true };
 				}
-
 				return { finish: false };
 			}
 			// 完形填空
 			else if (type && type === 'fill') {
-				return readerAndFillHandle(searchInfos, elements.filling);
+				return readerAndFillHandle(searchInfos, elements.filling, ctx.answerSeparators);
 			}
 			// 阅读理解
 			else if (type && type === 'reader') {
-				return readerAndFillHandle(searchInfos, elements.reading);
+				return readerAndFillHandle(searchInfos, elements.reading, ctx.answerSeparators);
 			}
 
 			return { finish: false };
@@ -1465,10 +1463,11 @@ function mobilelearn(opts: CommonWorkOptions) {
 					const text = option?.querySelector('textarea');
 					const textareaFrame = option?.querySelector('iframe');
 					if (text) {
-						text.value = answer;
+						replaceTextAnswer(text, answer);
 					}
 					if (textareaFrame?.contentDocument) {
 						textareaFrame.contentDocument.body.innerHTML = answer;
+						textareaFrame.contentDocument.body.dispatchEvent(new Event('input', { bubbles: true }));
 					}
 					if (option?.parentElement?.parentElement) {
 						/** 如果存在保存按钮则点击 */
@@ -1878,7 +1877,8 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 
 	// 手动模式
 	if (opts.mode === 'manually' || CXProject.scripts.study.cfg.mode === 'manually') {
-		const msg = '页面任务点已完成，自动跳转已关闭，请手动跳转。';		$message.warn({ content: msg, duration: 0 });
+		const msg = '页面任务点已完成，自动跳转已关闭，请手动跳转。';
+		$message.warn({ content: msg, duration: 0 });
 		$console.warn(msg);
 		return;
 	}
@@ -1943,7 +1943,8 @@ export async function study(opts: typeof CXProject.scripts.study.cfg) {
 		CXAnalyses.isInFinalTab() &&
 		// 闯关模式下无法使用智能模式
 		CXAnalyses.isInSpecialMode() === false
-	) {		// 检测当前章节是否完成，如果已经完成则下一章
+	) {
+		// 检测当前章节是否完成，如果已经完成则下一章
 		// 如果没有需要完成的章节，则暂停运行
 		const chapters = CXAnalyses.getChapterInfos();
 		const currentIndex = chapters.findIndex((info) =>
@@ -2480,10 +2481,11 @@ const JobRunner = {
 					const handler: DefaultWork<any>['handler'] = (type, answer, option, ctx) => {
 						if (type === 'judgement' || type === 'single' || type === 'multiple') {
 							// 检查是否已经选择
-							const checked =
-								option?.parentElement?.querySelector('label input')?.getAttribute('checked') === 'checked' ||
-								// 适配2023/9月最新版本
-								option?.closest('li')?.getAttribute('aria-checked') === 'true';
+							const ariaChecked = option?.closest('li')?.getAttribute('aria-checked');
+							const input = option
+								?.closest('li')
+								?.querySelector<HTMLInputElement>('input[type="radio"],input[type="checkbox"]');
+							const checked = ariaChecked === 'true' || (ariaChecked !== 'false' && input?.checked === true);
 							if (checked) {
 								// 跳过
 							} else {
@@ -2493,10 +2495,11 @@ const JobRunner = {
 							const text = option?.parentElement?.querySelector('textarea');
 							const textareaFrame = option?.parentElement?.querySelector('iframe');
 							if (text) {
-								text.value = answer;
+								replaceTextAnswer(text, answer);
 							}
 							if (textareaFrame?.contentDocument) {
 								textareaFrame.contentDocument.body.innerHTML = answer;
+								textareaFrame.contentDocument.body.dispatchEvent(new Event('input', { bubbles: true }));
 							}
 							if (option?.parentElement?.parentElement) {
 								/** 如果存在保存按钮则点击 */
@@ -2508,32 +2511,27 @@ const JobRunner = {
 					return await resolver(searchInfos, uniqueCXOptions(elements.options as HTMLElement[]), handler);
 				}
 				// 连线题自定义处理
-				else if (type && type === 'line') {
-					const select = (el: HTMLElement, opt_val: string) => {
-						const selected = el.querySelector(`option[selected]`);
-						const opt = el.querySelector(`option[value="${opt_val}"]`);
-						selected?.removeAttribute('selected');
-						if (opt) {
-							opt.setAttribute('selected', '');
-						}
-					};
-
+				else if (type === 'line') {
+					const selects = elements.lineSelectBox.map((box) =>
+						box.matches('select') ? (box as HTMLSelectElement) : box.querySelector<HTMLSelectElement>('select')
+					);
+					if (selects.some((select) => !select || select.disabled)) return { finish: false };
 					for (const answers of searchInfos.map((info) => info.results.map((res) => res.answer))) {
-						for (const ans of answers) {
-							const splited_ans = splitAnswer(ans);
-							if (splited_ans.length !== 0 && elements.lineSelectBox.length === splited_ans.length) {
-								//  选择答案
-								for (let index = 0; index < elements.lineSelectBox.length; index++) {
-									const box = elements.lineSelectBox[index];
-									if (splited_ans[index]) {
-										select(box, splited_ans[index]);
-										const text = box.parentElement?.querySelector('.chosen-single span');
-										if (text) text.textContent = splited_ans[index];
-										await $.sleep(200);
-									}
-								}
-								return { finish: true };
+						const groups = [answers, ...answers.map((answer) => splitAnswer(answer, ctx.answerSeparators))];
+						for (const group of groups) {
+							const targets = planCompoundAnswer(
+								group,
+								selects.map((select) => Array.from(select!.options).filter((option) => !option.disabled)),
+								(option) => option.value
+							);
+							if (!targets) continue;
+							for (let i = 0; i < targets.length; i++) {
+								if (!replaceSelectAnswer(selects[i]!, targets[i])) return { finish: false };
+								const text = selects[i]!.parentElement?.querySelector('.chosen-single span');
+								if (text) text.textContent = targets[i].textContent;
+								await $.sleep(200);
 							}
+							return { finish: true };
 						}
 					}
 
@@ -2558,7 +2556,7 @@ const JobRunner = {
 				);
 
 				// 没有完成时随机作答
-				if (curr.result?.finish === false && curr.resolved === true) {
+				if (curr.result?.finish === false && !curr.result.applyFailed && curr.resolved === true) {
 					const options = curr.ctx?.elements?.options || [];
 
 					const typeInput = curr.ctx?.elements?.type[0] as HTMLInputElement | undefined;
@@ -2568,6 +2566,7 @@ const JobRunner = {
 
 					if (
 						commonSetting['randomWork-choice'] &&
+						!options.some((option) => option && getChoiceSelected(option) === true) &&
 						(type === 'judgement' || type === 'single' || type === 'multiple')
 					) {
 						$console.log('正在随机作答');
@@ -2752,31 +2751,23 @@ function getQuestionType(
 }
 
 /** 阅读理解和完形填空的共同处理器 */
-async function readerAndFillHandle(searchInfos: SearchInformation[], list: HTMLElement[]) {
+async function readerAndFillHandle(searchInfos: SearchInformation[], list: HTMLElement[], separators?: string[]) {
+	const rows = list.map((item) => Array.from(item.querySelectorAll<HTMLElement>('span.saveSingleSelect[data]')));
 	for (const answers of searchInfos.map((info) => info.results.map((res) => res.answer))) {
-		let ans = answers;
-
-		if (ans.length === 1) {
-			ans = splitAnswer(ans[0]);
+		const ans = answers.length === 1 ? splitAnswer(answers[0], separators) : answers;
+		const targets = planCompoundAnswer(ans, rows, (option) => option.getAttribute('data'));
+		if (!targets) continue;
+		for (let i = 0; i < targets.length; i++) {
+			const ok = await applyChoiceSelection('single', rows[i], [targets[i]], async (option) => {
+				option.click();
+				await $.sleep(200);
+			});
+			if (!ok) return { finish: false };
 		}
-
-		if (ans.filter(Boolean).length !== 0 && list.length !== 0) {
-			for (let index = 0; index < ans.length; index++) {
-				const item = list[index];
-				if (item) {
-					/** 获取每个小题中的准确答案选项 并点击 */
-					$el(`span.saveSingleSelect[data="${ans[index]}"]`, item)?.click();
-					await $.sleep(200);
-				}
-			}
-
-			return { finish: true };
-		}
+		return { finish: true };
 	}
-
 	return { finish: false };
 }
-
 function hasFaceRecognition() {
 	// 人脸元素有时候 src 属性为空字符串，所以这里需要判断 src 是否为空字符串，如是则人脸识别会出现。
 	const faces = $$el<HTMLImageElement>('#fcqrimg', top?.document);

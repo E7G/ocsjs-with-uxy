@@ -1,4 +1,11 @@
-import { $, OCSWorker, createDefaultQuestionResolver, splitAnswer, QuestionTypes } from '@ocsjs/core';
+import {
+	$,
+	OCSWorker,
+	createDefaultQuestionResolver,
+	splitAnswer,
+	QuestionTypes,
+	replaceTextAnswer
+} from '@ocsjs/core';
 import { $gm, cors, $message, $$el, $modal, $el, Project, Script, $ui, h } from 'easy-us';
 import {
 	extractTextWithImages,
@@ -840,10 +847,15 @@ function work({ answererWrappers, period, thread, answerSeparators }: CommonWork
 
 				for (const searchInfo of ctx.searchInfos) {
 					for (const result of searchInfo.results) {
-						const answers = splitAnswer(result.answer);
-						if (answers.length === inputs.length) {
+						const answers = splitAnswer(result.answer, ctx.answerSeparators);
+						if (
+							inputs.length &&
+							answers.length === inputs.length &&
+							answers.every((answer) => answer.trim()) &&
+							inputs.every((input) => !input.disabled && !input.readOnly)
+						) {
 							for (let index = 0; index < inputs.length; index++) {
-								inputs[index].value = answers[index];
+								if (!replaceTextAnswer(inputs[index], answers[index])) return { finish: false };
 							}
 							return { finish: true };
 						}
@@ -862,12 +874,13 @@ function work({ answererWrappers, period, thread, answerSeparators }: CommonWork
 						const text = option.querySelector('textarea');
 						const textIframe = option.querySelector<HTMLIFrameElement>('iframe[id*="ueditor"]');
 						if (text) {
-							text.value = answer;
+							replaceTextAnswer(text, answer);
 						}
 						if (textIframe) {
 							const view = textIframe.contentWindow?.document.querySelector<HTMLElement>('body.view > p');
 							if (view) {
 								view.innerText = answer;
+								view.dispatchEvent(new Event('input', { bubbles: true }));
 							}
 						}
 					}
@@ -1000,7 +1013,11 @@ function aiWork({ answererWrappers, period, thread, answerSeparators }: CommonWo
 			async handler(type, answer, option, ctx) {
 				if (type === 'judgement' || type === 'single' || type === 'multiple') {
 					// 这里只用判断多选题是否选中，如果选中就不用再点击了，单选题是 radio，所以不用判断。
-					if (option.querySelector('.ivu-radio-checked') === null) {
+					if (
+						!option.querySelector('input:checked') &&
+						!option.matches('.ivu-radio-checked,.ivu-checkbox-checked') &&
+						!option.querySelector('.ivu-radio-checked,.ivu-checkbox-checked')
+					) {
 						option?.click();
 					}
 				} else if (type === 'completion' && answer.trim()) {
